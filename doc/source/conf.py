@@ -24,7 +24,6 @@ author = 'Marek M. Rams, Masoud Mohseni, Bartlomiej Gardas'
 # The full version, including alpha/beta/rc tags
 release = '0.1.0'
 
-
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -46,6 +45,9 @@ exclude_patterns = []
 
 
 # -- Options for HTML output -------------------------------------------------
+
+napoleon_use_ivar = True
+
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.

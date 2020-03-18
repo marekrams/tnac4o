@@ -1,7 +1,8 @@
 """
-Module to heuristically solve Ising-type problem on quasi-2d lattice, or RMF on 2d lattice.
-
-TODO: merge parts of RMF engine which are still missing here.
+Main module of the package.
+It puts together the heuristics to solve
+Ising-type optimization problems defined on a quasi-2d lattice (including e.g. chimera graph),
+or a Random Markov Field on 2d rectangular lattice.
 """
 
 import otn2d.mps as mps
@@ -14,36 +15,64 @@ import time
 import matplotlib.pyplot as plt
 
 
-def load_Jij(fname):
+def load_Jij(file_name):
     """
-    Loads couplings from a file having format: i j Jij.
+    Loads couplings in the Ising model from a file.
+
+    Args:
+        file_name (str): path to file with coupling written in the format, i j Jij.
+
+    Returns:
+        a list of Jij couplings.
     """
-    J = np.loadtxt(fname)
+    J = np.loadtxt(file_name)
     J = [[int(l[0]), int(l[1]), float(l[2])] for l in J]
     return J
 
 
 def minus_Jij(J):
-    """ Change sign of all couplings Jij -> -Jij. """
+    """ 
+    Change sign of all couplings Jij -> -Jij.
+    """
     return [[l[0], l[1], -l[2]] for l in J]
 
 
 def Jij_f2p(J):
     """
-    1 base indexig to 0 base indexing
+    Change 1-base indexig to 0-base indexing in a list of Jij.
     """
     return [[l[0]-1, l[1]-1, l[2]] for l in J]
 
 
 def Jij_p2f(J):
     """
-    0 base indexig to 1 base indexing
+    Change 0-base indexig to 1-base indexing in a list of Jij.
     """
     return [[l[0]+1, l[1]+1, l[2]] for l in J]
 
 
+def energy_Jij(J, states):
+    """Calculates energies states. 
+       J given as list in python numering. 
+       states: 1 (spin up); 0(spin down)"""
+    L = len(states[0])
+    if type(J) == list:
+        ii, jj, vv = zip(*J)
+        JJ = sparse.coo_matrix((vv, (ii, jj)), shape=(L, L)).tolil()
+        JJ = sparse.triu(JJ) + sparse.tril(JJ, -1).T   # makes the coupling matrix upper triangular
+    else:
+        JJ = J
+    st = 2*np.array(states)-1
+    Ns, dNs = st.shape[0], 1024
+    Eng = np.zeros(Ns, dtype=float)
+    for nn in range(0, Ns, dNs):
+        ind = np.arange(nn, min(nn+dNs, Ns))
+        Eng[ind] = np.sum(np.dot(st[ind], sparse.triu(JJ, 1).toarray())*st[ind], 1) + np.dot(st[ind], JJ.diagonal())
+    return Eng
+
+
 def load(name):
-    """load solution of instance from file"""
+    """Loads solution of instance from a file."""
     d = np.load(name, allow_pickle=True)
     Nx = d.item().get('Nx_model')
     Ny = d.item().get('Ny_model')
@@ -60,7 +89,7 @@ def load(name):
     ins.discarded_probability = d.item().get('discarded_probability')
     ins.negative_probability = d.item().get('negative_probability')
     try:
-        ins.ver = d.item().get('ver')
+        ins.merge_strategy = d.item().get('merge_strategy')
         ins.d = d.item().get('d')
         ins.invd = d.item().get('invd')
         ins.el = d.item().get('el')
@@ -72,38 +101,53 @@ def load(name):
 
 class otn2d:
     """
-    An instance to be solved. 
-    
+    An instance to be solved.
+
     Args:
-        mode {'Ising', 'RMF'}: 
-            (``'Ising'``) assumes Ising-type representation of the problem
-            with the cost function E = sum_{i<j} J_{i,j} s_i s_j + sum_i J_{i,i} s_i
-            The couplings J_{i,j} form 2d rectangular (Nx x Ny) grid of elementary cells 
+        mode (str):
+            ``'Ising'`` assumes Ising-type representation of the problem
+            with the cost function E(s) = sum_{i<j} Jij si sj + sum_i Jii si.
+            The couplings Jij form a 2d rectangular (Nx x Ny) lattice of elementary cells
             with Nc spins in each cell. 
-            Spin index i = Nx*Nc*k+Nc*l+m, with k=0:Ny-1, l=0:Nx-1, m=0:Nc-1 (zero-based indexing).
-            Spins which are not active (with all J_ij equall 0), are automatically recognised 
+            Spin index i = Nx*Nc*k+Nc*l+m, with k=0:Ny-1, l=0:Nx-1, m=0:Nc-1 (zero-based indexing is used).
+
+            Spins which are not active (with all Jij equall 0), are automatically recognised 
             and are not taken into account during the search.
-            (``'RMF'``) assumes a Random Markov Field type model on a 2d rectangular (Nx x Ny) grid
-            with cost function E = \sum_{<i,j>} E(s_i, s_j) + \sum_i E(s_i) and            
-            nearest-neighbour interactions only.
-        Nx (int): defining grid.
-        Ny (int): defining grid.
-        Nc (int): defining grid.
-        beta (float): sets the inverse temperature used during the seach.
-        J (others): couplings
-            For mode (``'Ising'``) it should be a list of [i, j, J_{ij}].
-    
-    Note:
-        Found solutions and some statistics from the search are stored
-        as atributes of the instance, as: 
-            ``energy`` 
-            ``probability`` 
-            ``degeneracy`` (of the ground state) 
-            ``states`` (of the cluster for mode=``Ising``)
-            ``discarded_probability`` 
-            ``negative_probability`` (if negative it indicates that tensor network contraction was not fully numerically stable)
+
+            ``'RMF'`` assumes a Random Markov Field type model on a 2d rectangular (Nx x Ny) lattice
+            with cost function E = sum_{<i,j>} E(s_i, s_j) + sum_i E(s_i) and nearest-neighbour interactions only.
+
+        ints Nx, Ny, Nc : defining lattice.
+        beta (float): sets the inverse temperature used during the search. 
+            This is the most important parameter, with larger beta better zooming on low energy states, 
+            but making tensor network contraction numerically less stable.
+        J (others): couplings.
+            For mode ``'Ising'`` it should be a list of [i, j, Jij].
+            For mode ``'RMF'`` it should be
+
+    Returns:
+        Obtained results are stored as instance attributes (see below).
+
+    Attributes:
+        energy: energy(-ies) of states obtained from searching or sampling.
+        probability: log10 of the calculated corresponding probabilities.
+        degeneracy: degeneracy of the ground state.
+        states: states of clusters from searching or sampling. 
+            In the mode ``'Ising'`` use method binary_states() to get the bit strings.
+        discarded_probability: log10 of the largest probability discarded during the search.
+        negative_probability: a potential red flag. 
+            Takes values in [-1,0]. 
+            Negative value means that some conditional probabilities calculated from tensor network contraction were negative. 
+            This indicates that the contraction was not fully numericaly stable. 
+            The worst case is shown. 
+            The value indicating the ratio of negative and positive conditional probabilities 
+            for some cluster and partial configuration.
+        logger: logger
+        merge_strategy: if low-energy spectrum was search, this is the index of merging approach which was used.
+        el: tree representing hierarchy of droplets, as obtained during merging.
+        d: dictionary of droplets' shapes.
     """
-    
+
     def __init__(self, mode='Ising', Nx=4, Ny=4, Nc=8, beta=1, J=None):
         self.mode = mode
         self.beta = beta
@@ -130,8 +174,8 @@ class otn2d:
         self._import_J(J)
         self._divide_couplings()
 
-    def save(self, filename):
-        """Save solution of instance to file"""
+    def save(self, file_name):
+        """Save solution of instance to a file."""
         d = {}
         d['mode'] = self.mode
         d['energy'] = self.energy
@@ -149,10 +193,10 @@ class otn2d:
             d['invd'] = self.invd
             d['el'] = self.el
             d['free_d'] = self.free_d
-            d['ver'] = self.ver
+            d['merge_strategy'] = self.merge_strategy
         except AttributeError:
             pass
-        np.save(filename, d)
+        np.save(file_name, d)
 
     # def plot(self, name='', ind=0, show=True):
     #     if ind < len(self.states):
@@ -164,7 +208,7 @@ class otn2d:
 
     def show_properties(self):
         """
-        Display basic properties of the grid.
+        Display basic properties of the lattice.
         """
         print("L:     ", self.L)
         print("Ny:    ", self.Ny)
@@ -173,7 +217,7 @@ class otn2d:
 
     def show_solution(self, state=False):
         """
-        Show the solution found and info on search and contraction.
+        Show the solution found and some info from search and contraction.
         """
         if len(self.energy) > 0:
             print("Energy            : %4.6f" % self.energy[0])
@@ -188,9 +232,16 @@ class otn2d:
             print('No solution to show')
 
     def binary_states(self, number=-1):
-        """ 
-        Return a number (-1 = all) of states in binary form; 
-        1 - spin up; 0 - spin down; 2 - inactive spin
+        """
+        Return states in binary form
+
+        1 - spin up (si=+1); 0 - spin down (si=-1); 2 - inactive spin
+
+        Args:
+            number (int): Maximal number of states to be returned. -1 returns all states.
+
+        Returns:
+            nparray
         """
         ns = self.states.shape[0]
         if number < 0:
@@ -212,6 +263,7 @@ class otn2d:
     def rotate_graph(self, rot=1):
         """
         Rotate 2d graph by 90 degree.
+
         Used to contract peps and search from other directions.
         Rotations are cumulative.
         """
@@ -233,9 +285,19 @@ class otn2d:
             self.order = order_i[self.order]
         self._divide_couplings()
 
-    def precondition(self, mode='balancing', steps=2, beta_cond=[], Dmax_cond=[], tolS=2.**(-52), tolV=1e-12, max_sweeps=4, max_scale=1024):
+    def precondition(self, mode='balancing', steps=2, beta_cond=[], Dmax_cond=[], max_scale=1024, tolS=1e-16, tolV=1e-10, max_sweeps=4):
         """
-        Apply preconditioning procedure using balancing heuristics.
+        Apply preconditioning procedure.
+        
+        Args:
+            mode (str): Type of heuristics used. For now only 'balancing' trick is implemented.
+            steps (int): number of smaller betas used (if they are not provided explicite).
+            beta_cond (list of floots): beta's used to search for preconditioning.
+            Dmax_cond (list of ints): corresponding maximal bond dimensions used in boundary MPS.
+            max_scale (float): bound on local rescaling used in one step.
+            tolS (float): truncate smaller singular values during svd in boundary MPS.
+            tolV (float): condition for overlap convergence during one sweep in boundary MPS.
+            max_sweeps (int): maximal number of sweeps of variational compression.            
         """
         if mode is 'balancing':
             if not beta_cond:
@@ -252,12 +314,28 @@ class otn2d:
                 self.logger.info('Elapsed: %.2f seconds', time.time() - keep_time)
             self.beta = main_beta
 
-    def search_ground_state(self, M=2**10, relative_P_cutoff=1e-6, min_dEng=1e-10, Dmax=32, tolS=2.**(-52), tolV=1e-12, max_sweeps=20):
+    def search_ground_state(self, M=2**10, relative_P_cutoff=1e-6,
+                            min_dEng=1e-12,
+                            Dmax=32, tolS=1e-16,
+                            tolV=1e-10, max_sweeps=20):
         """
-        Searching for most probable states on quasi-2d graph.
-        Merge and keep track of GS degeneracy.
-        Distinguishes different energies with precision min_dEng
-        Keep log of probabilities.
+        Searching for most probable state state (ground state) on a quasi-2d graph.
+
+        Merge matching configurations during branch and bound search going line (ny=0:Ny-1) by line. 
+        Keeps track of GS degeneracy. Distinguishes different energies with precision min_dEng.
+        Probabilities kept as log10. Results are stored as instance attributes.
+
+        Args:
+            M (int): maximal number of branches (partial configurations) which are kept during the search.
+            relative_P_cutoff (float): do not keep branches with probability smaller by that factor comparing with most probable one.
+            min_dEng (float): precision below which two states (perhaps partial) are considered to have the same energy.
+            Dmax (int): maximal bond dimensions used in boundary MPS.
+            tolS (float): truncate smaller singular values during svd in boundary MPS.
+            tolV (float): condition for overlap convergence during one sweep in boundary MPS.
+            max_sweeps (int): maximal number of sweeps of variational compression.    
+
+        Returns: 
+            The lowest energy found.
         """
 
         keep_total_time, keep_time = time.time(), time.time()
@@ -402,9 +480,23 @@ class otn2d:
         self.negative_probability = min(globalmin, 0)
         return Eng
 
-    def gibbs_sampling(self, M=2**10, Dmax=32, tolS=2.**(-52), tolV=1e-12, max_sweeps=20):
+    def gibbs_sampling(self, M=2**10,
+                       Dmax=32, tolS=1e-15,
+                       tolV=1e-10, max_sweeps=20):
         """
-        Sample from Boltzman distribution on quasi-2d graph. 
+        Sample from Boltzman distribution on quasi-2d graph.
+
+        Probabilities kept as log10. Results are stored as instance attributes.
+
+        Args:
+            M (int): number of configurations.
+            Dmax (int): maximal bond dimensions used in boundary MPS.
+            tolS (float): truncate smaller singular values during svd in boundary MPS.
+            tolV (float): condition for overlap convergence during one sweep in boundary MPS.
+            max_sweeps (int): maximal number of sweeps of variational compression.    
+
+        Returns: 
+            Sampled energies.
         """
 
         keep_total_time, keep_time = time.time(), time.time()
@@ -483,23 +575,65 @@ class otn2d:
         self.negative_probability = min(globalmin, 0)
         return Eng
 
-    def search_low_energy_spectrum(self, ver=1, M=2**10, relative_P_cutoff=1e-6, max_dEng=0., lim_hd=0, min_dEng=1e-10, Dmax=32, tolS=2.**(-52), tolV=1e-12, max_sweeps=20):
-        self.ver = ver
-        if ver == 1:
-            Eng = self.search_low_energy_spectrum_v1(M=M, relative_P_cutoff=relative_P_cutoff, max_dEng=max_dEng, lim_hd=lim_hd, min_dEng=min_dEng, Dmax=Dmax, tolS=tolS, tolV=tolV, max_sweeps=max_sweeps)
-        elif ver == 2:
-            Eng = self.search_low_energy_spectrum_v2(M=M, relative_P_cutoff=relative_P_cutoff, max_dEng=max_dEng, lim_hd=lim_hd, min_dEng=min_dEng, Dmax=Dmax, tolS=tolS, tolV=tolV, max_sweeps=max_sweeps)
-        elif ver == 3:
-            Eng = self.search_low_energy_spectrum_v3(M=M, relative_P_cutoff=relative_P_cutoff, max_dEng=max_dEng, lim_hd=lim_hd, min_dEng=min_dEng, Dmax=Dmax, tolS=tolS, tolV=tolV, max_sweeps=max_sweeps)
+    def search_low_energy_spectrum(self, merge_strategy=1,
+                                   M=2**10, relative_P_cutoff=1e-6,
+                                   max_dEng=0., lim_hd=0,
+                                   min_dEng=1e-12,
+                                   Dmax=32, tolS=1e-16,
+                                   tolV=1e-10, max_sweeps=20):
+        """
+        Searching for low-energy spectrum on quasi-2d graph.
+
+        Merge matching configurations during branch and bound search going line (ny=0:Ny-1) by line.
+        Information about excited states (droplets) are collecded during merging, which allows to reconstrunt low-energy spectrum.
+        Keeps track of GS degeneracy. Distinguishes different energies with precision min_dEng.
+        Probabilities kept as log10. Results are stored as instance attributes.
+
+        Args:
+            merge_strategy (int): Approach used to define independent/elementary droplets
+
+                ``1`` Independence determined based on order of snake spanning 2d lattice line by line.
+                It gives one-to-one correspondence between the low-energy spectrum
+                and the stored excitation structure
+                (assuming that the search itself was succesfull).
+
+                ``2`` Independent and elementary droplets determined based on adjecency matrix (i.e. graph of interactions).
+                Droplets which are not single-connected are discarded during merging, 
+                leaving only elementary single-connected ones.
+                One-to-one correspondence between low-energy spectrum and the stored excitation structure
+                might be lost when merging configurations with many layers of excitation hierarchy.
+
+                ``3`` As in ``2`` but excitations are compressed to one layer of hierarchy.
+                Usefull only for problems with single basin of attraction and low-energy excitations of small sizes.
+            M (int): maximal number of branches (partial configurations) which are kept during the search.
+            relative_P_cutoff (float): do not keep branches with probability smaller by that factor comparing with most probable one.
+            max_dEng (float): maximal excitation energy being targeted.
+            lim_hd (int): Lower limit of Hamming distance between states (while merging). Outputs less states.
+            min_dEng (float): precision below which two states (perhaps partial) are considered to have the same energy.
+            Dmax (int): maximal bond dimensions used in boundary MPS.
+            tolS (float): truncate smaller singular values during svd in boundary MPS.
+            tolV (float): condition for overlap convergence during one sweep in boundary MPS.
+            max_sweeps (int): maximal number of sweeps of variational compression.    
+
+        Returns:
+            The lowest energy found.
+        """
+        self.merge_strategy = merge_strategy
+        if merge_strategy == 1:
+            Eng = self._search_low_energy_spectrum_v1(M=M, relative_P_cutoff=relative_P_cutoff, max_dEng=max_dEng, lim_hd=lim_hd, min_dEng=min_dEng, Dmax=Dmax, tolS=tolS, tolV=tolV, max_sweeps=max_sweeps)
+        elif merge_strategy == 2:
+            Eng = self._search_low_energy_spectrum_v2(M=M, relative_P_cutoff=relative_P_cutoff, max_dEng=max_dEng, lim_hd=lim_hd, min_dEng=min_dEng, Dmax=Dmax, tolS=tolS, tolV=tolV, max_sweeps=max_sweeps)
+        elif merge_strategy == 3:
+            Eng = self._search_low_energy_spectrum_v3(M=M, relative_P_cutoff=relative_P_cutoff, max_dEng=max_dEng, lim_hd=lim_hd, min_dEng=min_dEng, Dmax=Dmax, tolS=tolS, tolV=tolV, max_sweeps=max_sweeps)
         else:
-            raise('Available droplets handling strategies are ver = 1,2,3.')
+            raise('Available droplets handling strategies are merge_strategy = 1,2,3.')
         return Eng
 
-    def search_low_energy_spectrum_v1(self, M=2**10, relative_P_cutoff=1e-6, max_dEng=0., lim_hd=0, min_dEng=1e-10, Dmax=32, tolS=2.**(-52), tolV=1e-12, max_sweeps=20):
+    def _search_low_energy_spectrum_v1(self, M=2**10, relative_P_cutoff=1e-6, max_dEng=0., lim_hd=0, min_dEng=1e-12, Dmax=32, tolS=1e-16, tolV=1e-10, max_sweeps=20):
         """
         Searching for most probable states on quasi-2d graph.
         Merge and keeps track of excitation.
-        Independence determined based on order of snake spanning 2d grid.
+        Independence determined based on order of snake spanning 2d lattice.
         """
 
         keep_total_time, keep_time = time.time(), time.time()
@@ -658,11 +792,12 @@ class otn2d:
         self.negative_probability = min(globalmin, 0)
         return Eng
 
-    def add_noise(self, amplitude=1e-6):
+    def add_noise(self, amplitude=1e-7):
         """
         Add a small random noise to the couplings.
-        Used to remove accidental degeneracies for searching low energy states in ver=2,3
+        Used to remove accidental degeneracies while searching low-energy states in 'merge_strategy' 2 or 3.
         """
+        self.logger.info('Adding noise to the coupling with ampliture %.2e', amplitude)
         if self.mode is 'Ising':
             nzr = self.J.nonzero()
             kk = ((np.random.rand(len(nzr[0]))*2-1)*amplitude)
@@ -680,13 +815,13 @@ class otn2d:
             self.func_clean = self.func
             self.func = func_new
 
-    def noise_clean(self):
-        try:
-            self.func = self.func_clean
-        except NameError:
-            pass
+    # def noise_clean(self):
+    #     try:
+    #         self.func = self.func_clean
+    #     except NameError:
+    #         pass
 
-    def search_low_energy_spectrum_v2(self, M=2**10, relative_P_cutoff=1e-6, Dmax=32, tolS=2.**(-52), tolV=1e-12, max_dEng=0., min_dEng=1e-10, max_sweeps=20, lim_hd=0):
+    def _search_low_energy_spectrum_v2(self, M=2**10, relative_P_cutoff=1e-6, Dmax=32, tolS=1e-16, tolV=1e-10, max_dEng=0., min_dEng=1e-12, max_sweeps=20, lim_hd=0):
         """
         Searching for most probable states on quasi-2d graph.   
         Merge and keeps track of excitation. 
@@ -849,7 +984,7 @@ class otn2d:
         self.negative_probability = min(globalmin, 0)
         return Eng
 
-    def search_low_energy_spectrum_v3(self, M=2*10, relative_P_cutoff=1e-6, Dmax = 32, tolS = 2.**(-52), tolV = 1e-12, max_dEng = 0, min_dEng = 1e-12, max_sweeps = 20, lim_hd = 0):
+    def _search_low_energy_spectrum_v3(self, M=2*10, relative_P_cutoff=1e-6, Dmax = 32, tolS = 2.**(-52), tolV = 1e-12, max_dEng = 0, min_dEng = 1e-12, max_sweeps = 20, lim_hd = 0):
         """
         Searching for most probable states on quasi-2d graph.
         Merge and keeps track of excitation. 
@@ -1288,7 +1423,7 @@ class otn2d:
 
         return Es_full
 
-    def _setup_rhoT(self, Dmax=64, tolS=2.**(-52), tolV=1e-12, max_sweeps=20):
+    def _setup_rhoT(self, Dmax=64, tolS=1e-16, tolV=1e-10, max_sweeps=20):
         """
         Creates environment for layers of peps; from top.
         """
@@ -1421,7 +1556,7 @@ class otn2d:
         # here they are associated with legs of peps tensor A[ny][nx]
         # corresponding Xu, Xd; and Xl, Xr should combine to identity
 
-    def _update_conditioning(self, direction='ud', Dmax=8, tolS=2.**(-52), tolV=1e-12, max_sweeps=4, max_scale=1024):
+    def _update_conditioning(self, direction='ud', Dmax=8, tolS=1e-16, tolV=1e-10, max_sweeps=4, max_scale=1024):
         """
         A sweep searching for conditioning using balancing heuristics.
         """
@@ -1601,7 +1736,7 @@ class otn2d:
     ##############
 
     def _exc_initialise(self):
-        """Assume nearest neighbour interaction on Nx x Ny grid """
+        """Assume nearest neighbour interaction on Nx x Ny lattice """
         self.d = {}  # dict keeping excitations
         self.invd = {}  # dict giving partial inverse for better searching
         self.el = [[]] # list of excitations for all branches
@@ -1623,7 +1758,7 @@ class otn2d:
                     self.xor2ind.append(xor2ind_cluster)
 
     def exc_show_properties(self):
-        print("Droplets decoding ver : ", self.ver)
+        print("Merge strategy : ", self.merge_strategy)
         print("Size of dictionary    : ", len(self.d))
         print("First unused index    : ", self.free_d)
         print("Nr of branches        : ", len(self.el))
@@ -1698,7 +1833,7 @@ class otn2d:
         """
         Check if two shapes in dict are connected
         For mode Ising according to adjacency matrix
-        For mode RFM on 2d  Nx*Ny grid
+        For mode RFM on 2d  Nx x Ny lattice
         """
 
         exc1 = self.d[ie1] if isinstance(ie1, int) else ie1
@@ -1866,11 +2001,11 @@ class otn2d:
         return list(set(itertools.chain(*uq)))
 
     def _exc_unpack(self, max_dEng = 0., max_states=np.inf):
-        if self.ver == 1:
+        if self.merge_strategy == 1:
             return self._exc_unpack_v1(self.el[0], max_dEng=max_dEng, max_states=max_states)
-        elif self.ver == 2:
+        elif self.merge_strategy == 2:
             return self._exc_unpack_v2(self.el[0], max_dEng=max_dEng, max_states=max_states)
-        elif self.ver == 3:
+        elif self.merge_strategy == 3:
             return self._exc_unpack_v2(self.el[0], max_dEng=max_dEng, max_states=max_states, one_layer=True)
 
     def _exc_unpack_v1(self, el, max_dEng=0., max_states=np.inf):

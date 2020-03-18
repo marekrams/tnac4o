@@ -4,7 +4,7 @@ import time
 from otn2d import otn2d
 
 
-def search_spectrum_droplet(L, ins, rot, beta, M, relative_P_cutoff, ver, dE, hd, max_states):
+def search_spectrum_droplet(L, ins, rot, beta, M, relative_P_cutoff, merge_strategy, dE, hd, max_states):
     ''' Runs a script searching for ground state of droplet instances.
         Instances are located in the folder "./../instances/"
     '''
@@ -37,14 +37,14 @@ def search_spectrum_droplet(L, ins, rot, beta, M, relative_P_cutoff, ver, dE, hd
     if args.r > 0:
         ins.rotate_graph(rot=args.r)
 
-    if args.ver > 1:
+    if args.merge_strategy > 1:
         ins.add_noise(amplitude=1e-7)
         
     #  applies preconditioning using balancing heuristics
     ins.precondition(mode='balancing')
 
     # search ground state
-    Eng = ins.search_low_energy_spectrum(ver=ver, M=M, relative_P_cutoff=relative_P_cutoff, max_dEng=dE, lim_hd=hd)
+    Eng = ins.search_low_energy_spectrum(merge_strategy=merge_strategy, M=M, relative_P_cutoff=relative_P_cutoff, max_dEng=dE, lim_hd=hd)
 
     # decode tree of droplets to generate all low-energy states
     Eng = ins.decode_low_energy_states(max_dEng=args.dE, max_states=max_states)
@@ -69,30 +69,32 @@ if __name__ == "__main__":
     parser.add_argument("-dE", type=float, default=1.0,
                         help="Limit on excitation energy.")
     parser.add_argument("-hd", type=int, default=0,
-                        help="Lower limit of Hamming distance between some states. Outputs less states.")
+                        help="Lower limit of Hamming distance between states (while merging). Outputs less states.")
     parser.add_argument("-max_states", type=int, default=2**20,
                         help="Limit total number of low energy states which is being reconstructed.")
-    parser.add_argument("-ver", type=int, default=1, choices=[1, 2, 3],
-                        help="Strategy used to compress droplets. For ver=2 or 3 adds a very small noise to the couplings slighly modyfings energies.")
+    parser.add_argument("-merge_strategy", type=int, default=1, choices=[1, 2, 3],
+                        help="Strategy used to compress droplets. For merge_strategy=2 or 3 adds a very small noise to the couplings slighly modyfings energies.")
 
     args = parser.parse_args()
-    
+
     keep_time = time.time()
-    ins = search_spectrum_droplet(L=args.L, ins=args.ins, rot=args.r, beta=args.b, M=args.M, relative_P_cutoff=args.P, ver=args.ver, dE=args.dE, hd=args.hd,  max_states=args.max_states)
+    ins = search_spectrum_droplet(L=args.L, ins=args.ins, rot=args.r, beta=args.b, M=args.M, relative_P_cutoff=args.P, merge_strategy=args.merge_strategy, dE=args.dE, hd=args.hd,  max_states=args.max_states)
     ins.logger.info('Total time : %.2f seconds', time.time() - keep_time)
 
     # display solution on screen
     ins.show_solution(state=False)
- 
+
     # translates low energy states to bit_strings
     bit_strings = ins.binary_states()
     print('Number of states:', len(bit_strings))
 
-    # display excitation energies    
+    # display excitation energies
+    print()
+    print('Excitation energies:')
     print(ins.energy-ins.energy[0])
 
-    # display excitation tree    
+    print()
+    print('Tree of droplets (intendation shows hierarchy):')
+    print('dEng : clusters | change (xor) in cluster')
+    # display excitation tree
     ins.exc_print()
-
-
-

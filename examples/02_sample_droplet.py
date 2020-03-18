@@ -39,7 +39,7 @@ def gibbs_sampling(L, ins, rot, beta, M):
         ins.rotate_graph(rot=args.r)
 
     #  applies preconditioning using balancing heuristics
-    ins.precondition(mode='balancing')
+    # ins.precondition(mode='balancing')
 
     # search ground state
     Eng = ins.gibbs_sampling(M=M)

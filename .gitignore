@@ -1,5 +1,5 @@
 # temp files
-./examples/temp/*
+examples/temp/
 
 # OSX
 .DS_Store

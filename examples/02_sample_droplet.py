@@ -48,7 +48,7 @@ def gibbs_sampling(L=128, ins=1,
     ins = otn2d.otn2d(mode='Ising', Nx=Nx, Ny=Ny, Nc=Nc, J=J, beta=beta)
 
     # rotates graph
-    if r > 0:
+    if rot > 0:
         ins.rotate_graph(rot=r)
 
     # applies preconditioning using balancing heuristics
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     parser.set_defaults(pre=True)
     parser.add_argument("-s", dest='s', action='store_true',
                         help="Save sampled states to txt file in ./temp/")
-    parser.set_defaults(s=True)
+    parser.set_defaults(s=False)
     args = parser.parse_args()
 
     keep_time = time.time()

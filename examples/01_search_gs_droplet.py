@@ -17,18 +17,18 @@ def search_gs_droplet(L=128, ins=1,
     logging.basicConfig(level='INFO')
 
     # filename of the instance of interest
-    if args.L == 128:
+    if L == 128:
         Nx, Ny, Nc = 4, 4, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera128_spinglass_power/%03d.txt' % args.ins)
-    elif args.L == 512:
+        filename_in = ('./../instances/Chimera_droplet_instances/chimera128_spinglass_power/%03d.txt' % ins)
+    elif L == 512:
         Nx, Ny, Nc = 8, 8, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera512_spinglass_power/%03d.txt' % args.ins)
-    elif args.L == 1152:
+        filename_in = ('./../instances/Chimera_droplet_instances/chimera512_spinglass_power/%03d.txt' % ins)
+    elif L == 1152:
         Nx, Ny, Nc = 12, 12, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera1152_spinglass_power/%03d.txt' % args.ins)
-    elif args.L == 2048:
+        filename_in = ('./../instances/Chimera_droplet_instances/chimera1152_spinglass_power/%03d.txt' % ins)
+    elif L == 2048:
         Nx, Ny, Nc = 16, 16, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera2048_spinglass_power/%03d.txt' % args.ins)
+        filename_in = ('./../instances/Chimera_droplet_instances/chimera2048_spinglass_power/%03d.txt' % ins)
 
     # load Jij couplings
     J = otn2d.load_Jij(filename_in)
@@ -41,10 +41,10 @@ def search_gs_droplet(L=128, ins=1,
     J = [[x[0], x[1], round(75.*x[2])/75.] for x in J]
 
     # initializes solver
-    ins = otn2d.otn2d(mode='Ising', Nx=Nx, Ny=Ny, Nc=Nc, J=J, beta=args.b)
+    ins = otn2d.otn2d(mode='Ising', Nx=Nx, Ny=Ny, Nc=Nc, J=J, beta=beta)
 
     # rotates graph to contract from different side/edge
-    if args.r > 0:
+    if rot > 0:
         ins.rotate_graph(rot=rot)
 
     # applies preconditioning using balancing heuristics

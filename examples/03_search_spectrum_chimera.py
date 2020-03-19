@@ -92,7 +92,7 @@ if __name__ == "__main__":
     parser.add_argument('-no-pre', dest='pre', action='store_false', help="Do not use preconditioning.")
     parser.set_defaults(pre=True)
     parser.add_argument("-s", dest='s', action='store_true', help="Saves results to file in ./temp/")
-    parser.set_defaults(s=True)
+    parser.set_defaults(s=False)
     args = parser.parse_args()
 
     keep_time = time.time()

@@ -4,52 +4,67 @@ import time
 from otn2d import otn2d
 
 
-def search_spectrum_droplet(L, ins, rot, beta, M, relative_P_cutoff, merge_strategy, dE, hd, max_states):
-    ''' Runs a script searching for ground state of droplet instances.
-        Instances are located in the folder "./../instances/"
-    '''
-    if args.L == 128:
-        Nx, Ny, Nc = 4, 4, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera128_spinglass_power/%03d.txt' % args.ins)
-    elif args.L == 512:
-        Nx, Ny, Nc = 8, 8, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera512_spinglass_power/%03d.txt' % args.ins)
-    elif args.L == 1152:
-        Nx, Ny, Nc = 12, 12, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera1152_spinglass_power/%03d.txt' % args.ins)
-    elif args.L == 2048:
-        Nx, Ny, Nc = 16, 16, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera2048_spinglass_power/%03d.txt' % args.ins)
+def search_spectrum_droplet(L=128, ins=1,
+                            rot=0, beta=4,
+                            M=1024, relative_P_cutoff=1e-6,
+                            excitations_encoding=1,
+                            dE=1., hd=0,
+                            precondition=True):
+    """
+    Runs a script searching for ground state of `droplet instances`.
+    
+    Instances are located in the folder ./../instances/
+    Reasonable (but not neccesarily optimal) values of parameters are used by default.
+    Some can be chaged using options in this script.
+    """
 
     # Initialize global logging level to INFO.
     logging.basicConfig(level='INFO')
-
+    
+    # load Jij couplings
+    if L == 128:
+        Nx, Ny, Nc = 4, 4, 8
+        filename_in = ('./../instances/Chimera_droplet_instances/chimera128_spinglass_power/%03d.txt' % ins)
+    elif L == 512:
+        Nx, Ny, Nc = 8, 8, 8
+        filename_in = ('./../instances/Chimera_droplet_instances/chimera512_spinglass_power/%03d.txt' % ins)
+    elif L == 1152:
+        Nx, Ny, Nc = 12, 12, 8
+        filename_in = ('./../instances/Chimera_droplet_instances/chimera1152_spinglass_power/%03d.txt' % ins)
+    elif L == 2048:
+        Nx, Ny, Nc = 16, 16, 8
+        filename_in = ('./../instances/Chimera_droplet_instances/chimera2048_spinglass_power/%03d.txt' % ins)
+    
     J = otn2d.load_Jij(filename_in)
+
     # those instances are defined with spin numering starting with 1
+    # change to 0-base indexing
     J = otn2d.Jij_f2p(J)
-    # round J to 1/75 for those instances
+
+    # round J to multiplies of 1/75 for those instances
     J = [[x[0], x[1], round(75.*x[2])/75.] for x in J]
 
     #  initialize solver
-    ins = otn2d.otn2d(mode='Ising', Nx=Nx, Ny=Ny, Nc=Nc, J=J, beta=args.b)
+    ins = otn2d.otn2d(mode='Ising', Nx=Nx, Ny=Ny, Nc=Nc, J=J, beta=beta)
 
     #  rotates graph
     if args.r > 0:
         ins.rotate_graph(rot=args.r)
 
-    if args.merge_strategy > 1:
+    # if using excitations_encoding = 2,3, add small noise
+    if excitations_encoding > 1:
         ins.add_noise(amplitude=1e-7)
-        
-    #  applies preconditioning using balancing heuristics
-    ins.precondition(mode='balancing')
 
-    # search ground state
-    Eng = ins.search_low_energy_spectrum(merge_strategy=merge_strategy, M=M, relative_P_cutoff=relative_P_cutoff, max_dEng=dE, lim_hd=hd)
+    # applies preconditioning using balancing heuristics
+    if precondition:
+        ins.precondition(mode='balancing')
 
-    # decode tree of droplets to generate all low-energy states
-    Eng = ins.decode_low_energy_states(max_dEng=args.dE, max_states=max_states)
+    keep_time_search = time.time()
 
-    # show energies
+    # search for low energy spectrum  
+    Eng = ins.search_low_energy_spectrum(excitations_encoding=excitations_encoding, M=M, relative_P_cutoff=relative_P_cutoff, max_dEng=dE, lim_hd=hd)
+
+    ins.logger.info('Total search time : %.2f seconds', time.time() - keep_time_search)
     return ins
 
 if __name__ == "__main__":
@@ -70,19 +85,37 @@ if __name__ == "__main__":
                         help="Limit on excitation energy.")
     parser.add_argument("-hd", type=int, default=0,
                         help="Lower limit of Hamming distance between states (while merging). Outputs less states.")
-    parser.add_argument("-max_states", type=int, default=2**20,
+    parser.add_argument("-max_st", type=int, default=2**20,
                         help="Limit total number of low energy states which is being reconstructed.")
-    parser.add_argument("-merge_strategy", type=int, default=1, choices=[1, 2, 3],
-                        help="Strategy used to compress droplets. For merge_strategy=2 or 3 adds a very small noise to the couplings slighly modyfings energies.")
-
+    parser.add_argument("-ee", type=int, default=1, choices=[1, 2, 3],
+                        help="Strategy used to compress droplets. For excitations_encoding = 2 or 3 small noise is added to the couplings slighly modyfings energies.")
+    parser.add_argument("-pre", type=int, default=1,
+                        help="If precondition is used.")
+    parser.add_argument("-s", default=False,
+                        help="Save to file")
     args = parser.parse_args()
 
-    keep_time = time.time()
-    ins = search_spectrum_droplet(L=args.L, ins=args.ins, rot=args.r, beta=args.b, M=args.M, relative_P_cutoff=args.P, merge_strategy=args.merge_strategy, dE=args.dE, hd=args.hd,  max_states=args.max_states)
-    ins.logger.info('Total time : %.2f seconds', time.time() - keep_time)
+    ins = search_spectrum_droplet(L=args.L, ins=args.ins,
+                                  rot=args.r,
+                                  beta=args.b,
+                                  M=args.M, relative_P_cutoff=args.P,
+                                  excitations_encoding=args.ee,
+                                  dE=args.dE, hd=args.hd,
+                                  precondition=args.pre)
+
+    # saves befor decoding excitations
+    if args.s:
+        file_name = 'L=%1d_ins=%03d_r=%1d_beta=%0.2f_M=%1d_P=%0.2e_ee=%1d_dE=%0.3f_hd=%1d_pre=%1d'%\
+                (args.L, args.ins, args.r, args.b, args.M, args.P, args.ee, args.dE, args.hd, args.pre)
+        ins.save(file_name)
 
     # display solution on screen
     ins.show_solution(state=False)
+
+    # decode low energy spectrum
+    keep_time_decode = time.time()
+    Eng = ins.decode_low_energy_states(max_dEng=args.dE, max_states=args.max_st)
+    ins.logger.info('Decode spectrum time : %.2f seconds', time.time() - keep_time_decode)
 
     # translates low energy states to bit_strings
     bit_strings = ins.binary_states()
@@ -93,8 +126,8 @@ if __name__ == "__main__":
     print('Excitation energies:')
     print(ins.energy-ins.energy[0])
 
-    print()
-    print('Tree of droplets (intendation shows hierarchy):')
-    print('dEng : clusters | change (xor) in cluster')
     # display excitation tree
-    ins.exc_print()
+    # print()
+    # print('Tree of droplets (intendation shows hierarchy):')
+    # print('dEng : clusters | change (xor) in cluster')
+    # ins.exc_print()

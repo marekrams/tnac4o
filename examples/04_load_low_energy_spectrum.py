@@ -75,7 +75,7 @@ def main():
     keep_time_decode = time.time()
     Eng = ins.decode_low_energy_states(max_dEng=args.dE, max_states=args.max_st)
     bit_strings = ins.binary_states()
-    ins.logger.info('Decode spectrum time : %.2f seconds', time.time() - keep_time_decode)
+    ins.logger.info('Decoding spectrum elapse time : %.2f seconds', time.time() - keep_time_decode)
 
     ins.show_solution()
 

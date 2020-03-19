@@ -12,7 +12,7 @@ def search_spectrum_droplet(L=128, ins=1,
                             precondition=True):
     """
     Runs a script searching for ground state of `droplet instances`.
-    
+
     Instances are located in the folder ./../instances/
     Reasonable (but not neccesarily optimal) values of parameters are used by default.
     Some can be chaged using options in this script.
@@ -20,8 +20,8 @@ def search_spectrum_droplet(L=128, ins=1,
 
     # Initialize global logging level to INFO.
     logging.basicConfig(level='INFO')
-    
-    # load Jij couplings
+
+    # filename of the instance of interest
     if L == 128:
         Nx, Ny, Nc = 4, 4, 8
         filename_in = ('./../instances/Chimera_droplet_instances/chimera128_spinglass_power/%03d.txt' % ins)
@@ -34,7 +34,8 @@ def search_spectrum_droplet(L=128, ins=1,
     elif L == 2048:
         Nx, Ny, Nc = 16, 16, 8
         filename_in = ('./../instances/Chimera_droplet_instances/chimera2048_spinglass_power/%03d.txt' % ins)
-    
+
+    # load Jij couplings
     J = otn2d.load_Jij(filename_in)
 
     # those instances are defined with spin numering starting with 1
@@ -51,7 +52,8 @@ def search_spectrum_droplet(L=128, ins=1,
     if args.r > 0:
         ins.rotate_graph(rot=args.r)
 
-    # if using excitations_encoding = 2,3, add small noise
+    # if using excitations_encoding = 2 or 3
+    # adds small noise to remove accidental degeneracies
     if excitations_encoding > 1:
         ins.add_noise(amplitude=1e-7)
 
@@ -59,13 +61,11 @@ def search_spectrum_droplet(L=128, ins=1,
     if precondition:
         ins.precondition(mode='balancing')
 
-    keep_time_search = time.time()
-
-    # search for low energy spectrum  
+    # search for low energy spectrum
     Eng = ins.search_low_energy_spectrum(excitations_encoding=excitations_encoding, M=M, relative_P_cutoff=relative_P_cutoff, max_dEng=dE, lim_hd=hd)
 
-    ins.logger.info('Total search time : %.2f seconds', time.time() - keep_time_search)
     return ins
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -89,12 +89,13 @@ if __name__ == "__main__":
                         help="Limit total number of low energy states which is being reconstructed.")
     parser.add_argument("-ee", type=int, default=1, choices=[1, 2, 3],
                         help="Strategy used to compress droplets. For excitations_encoding = 2 or 3 small noise is added to the couplings slighly modyfings energies.")
-    parser.add_argument("-pre", type=int, default=1,
-                        help="If precondition is used.")
-    parser.add_argument("-s", default=False,
-                        help="Save to file")
+    parser.add_argument('-no-pre', dest='pre', action='store_false', help="Do not use preconditioning.")
+    parser.set_defaults(pre=True)
+    parser.add_argument("-s", dest='s', action='store_true', help="Saves results to file in ./temp/")
+    parser.set_defaults(s=True)
     args = parser.parse_args()
 
+    keep_time = time.time()
     ins = search_spectrum_droplet(L=args.L, ins=args.ins,
                                   rot=args.r,
                                   beta=args.b,
@@ -102,11 +103,13 @@ if __name__ == "__main__":
                                   excitations_encoding=args.ee,
                                   dE=args.dE, hd=args.hd,
                                   precondition=args.pre)
+    ins.logger.info('Total time : %.2f seconds', time.time() - keep_time)
 
-    # saves befor decoding excitations
+    # saves solution to file
+    # saves before decoding excitations
     if args.s:
-        file_name = 'L=%1d_ins=%03d_r=%1d_beta=%0.2f_M=%1d_P=%0.2e_ee=%1d_dE=%0.3f_hd=%1d_pre=%1d'%\
-                (args.L, args.ins, args.r, args.b, args.M, args.P, args.ee, args.dE, args.hd, args.pre)
+        file_name = './temp/L=%1d_ins=%03d_r=%1d_beta=%0.2f_M=%1d_P=%0.2e_ee=%1d_dE=%0.3f_hd=%1d_pre=%1d.npy' \
+                    % (args.L, args.ins, args.r, args.b, args.M, args.P, args.ee, args.dE, args.hd, args.pre)
         ins.save(file_name)
 
     # display solution on screen
@@ -115,7 +118,7 @@ if __name__ == "__main__":
     # decode low energy spectrum
     keep_time_decode = time.time()
     Eng = ins.decode_low_energy_states(max_dEng=args.dE, max_states=args.max_st)
-    ins.logger.info('Decode spectrum time : %.2f seconds', time.time() - keep_time_decode)
+    ins.logger.info('Decoding spectrum elapse time : %.2f seconds', time.time() - keep_time_decode)
 
     # translates low energy states to bit_strings
     bit_strings = ins.binary_states()

@@ -12,7 +12,9 @@ import logging
 import scipy.sparse as sparse
 import scipy.linalg as splinalg
 import time
+import h5py
 import matplotlib.pyplot as plt
+from collections import namedtuple
 
 
 def load_Jij(file_name):
@@ -20,7 +22,7 @@ def load_Jij(file_name):
     Loads couplings of the Ising model from a file.
 
     Args:
-        file_name (str): a path to file with coupling written in the format, i j Jij.
+        file_name (str): a path to file with coupling written in the format, i j :math:`J_{ij}`.
 
     Returns:
         a list of Jij couplings.
@@ -31,7 +33,7 @@ def load_Jij(file_name):
 
 
 def minus_Jij(J):
-    """ 
+    """
     Change sign of all couplings Jij -> -Jij.
     """
     return [[l[0], l[1], -l[2]] for l in J]
@@ -55,14 +57,14 @@ def energy_Jij(J, states):
     """
     Calculates energies from bit_strings for Ising model.
 
-    Args: 
+    Args:
         J (list): list of couplings
         states (nparray): 1 (spin up), 0 (spin down)
 
     Returns:
         Energies for all states.
     """
-    
+
     L = len(states[0])
 
     ii, jj, vv = zip(*J)
@@ -79,7 +81,15 @@ def energy_Jij(J, states):
 
 
 def load(file_name):
-    """Loads solution of an instance from a file."""
+    """
+    Loads solution of an instance from a file.
+
+    Args:
+        file_name (str): a path to file generated with method :meth:`otn2d.save`.
+
+    Returns:
+        instance of otn2d class. Couplings are not loaded -- they are not saved in the first place.
+    """
     d = np.load(file_name, allow_pickle=True)
     Nx = d.item().get('Nx')
     Ny = d.item().get('Ny')
@@ -94,7 +104,7 @@ def load(file_name):
     ins.discarded_probability = d.item().get('discarded_probability')
     ins.negative_probability = d.item().get('negative_probability')
     ins.ind0 = d.item().get('ind')
-    ins.adj = np.zeros((0,0))
+    ins.adj = np.zeros((0, 0))
     try:
         ins.excitations_encoding = d.item().get('excitations_encoding')
         ins.d = d.item().get('d')
@@ -112,6 +122,83 @@ def load(file_name):
     return ins
 
 
+def load_openGM(fname, Nx, Ny):
+    """
+    Loads some factored graphs written in openGM format. Assumes rectangular lattice.
+
+    Args:
+        file_name (str): a path to file with factor graph in openGM format.
+        Nx, Ny: it is assumed that graph if forming an Nx x Ny lattice with
+            nearest-neighbour interactions only.
+
+    Returns:
+        namedtuple with factors and funcitons defining the energy functional.
+    """
+    with h5py.File(fname, 'r') as hf:
+        keys = list(hf.keys())
+        data = hf[keys[0]]
+        H = list(data['header'])
+        print('Header: ', H)
+        _, _, L, n_factors, _, _, n_functions, _ = H
+        F = np.array(data['factors'], dtype=int)
+        J = np.array(data['function-id-16000/indices'], dtype=int)
+        V = np.array(data['function-id-16000/values'], dtype=float)
+        N = np.array(data['numbers-of-states'], dtype=int)
+
+    F = list(F[::-1])
+    factors = {}
+    while len(F) > 0:
+        f1 = F.pop()
+        z1 = F.pop()
+        nn = F.pop()
+        n = []
+        for _ in range(nn):
+            tt = F.pop()
+            ny, nx = tt // Nx, tt % Nx
+            n = n + [ny, nx]
+        if len(n) == 4:
+            if abs(n[0]-n[2])+abs(n[1]-n[3]) != 1:
+                Exception('not nearest neighbour')
+        if len(n) == 2:
+            if (n[0] >= Ny) or (n[1] >= Nx):
+                Exception('wrong size')
+        factors[tuple(n)] = f1
+        if z1 != 0:
+            Exception('something wrong with expected convention.')
+
+    J = list(J[::-1])
+    functions, ii, lower = {}, -1, 0
+    while len(J) > 0:
+        ii += 1
+        nn = J.pop()
+        n = []
+        for _ in range(nn):
+            n.append(J.pop())
+        upper = lower + np.prod(n, dtype=int)
+        functions[ii] = np.reshape(V[lower:upper], n[::-1]).T
+        lower = upper
+    J = namedtuple('J', 'fun fac N Nx Ny')
+    J(fun=funtions, fac=factors, N=N, Nx=Nx, Ny=Ny)
+    return J
+
+
+    def energy_fg(J, states):
+        """ Calculates energy of the state. J given as list in python numering. states: 1 (spin up); 0(spin down)
+        E = Jij si sj + Jii si. """
+        Engs = np.zeros(len(states))
+        for key, val in J.fac.items():
+            if len(key) == 2:
+                ny, nx = key
+                n = ny*J.Nx+nx
+                Engs += J.fun[val][states[:, n]]
+            elif len(key) == 4:
+                ny1, nx1, ny2, nx2 = key
+                n1 = ny1*J.Nx+nx1
+                n2 = ny2*J.Nx+nx2
+                Engs += J.fun[val][states[:, n1], states[:, n2]]
+        return Engs
+
+
 class otn2d:
     """
     Contains instance to be solved.
@@ -119,38 +206,38 @@ class otn2d:
     Args:
         mode (str):
             ``'Ising'`` assumes Ising-type representation of the problem
-            with the cost function E(s) = sum_{i<j} Jij si sj + sum_i Jii si.
-            The couplings Jij form a 2d rectangular (Nx x Ny) lattice of elementary cells with Nc spins in each cell. 
-            Spin index i = Nx*Nc*k+Nc*l+m, with k=0:Ny-1, l=0:Nx-1, m=0:Nc-1 (zero-based indexing is used).
+            with the cost function :math:`E(s) = \\sum_{i<j} J_{ij} s_i s_j + \\sum_i J_{ii} s_i`.
+            The couplings :math:`J_{ij}` form a 2d rectangular :math:`N_x \\times N_y` lattice of elementary cells with Nc spins in each cell.
+            Spin index :math:`i = N_x*N_c*k+N_c*l+m`, with :math:`k=0:N_y-1`, :math:`l=0:N_x-1`, :math:`m=0:N_c-1` (zero-based indexing is used).
 
-            Spins which are not active (with all Jij equal 0), are automatically recognized.  They not taken into account during the search.
+            Spins which are not active (with all :math:`J_{ij}` equal 0), are automatically recognized.  They not taken into account during the search.
 
             ``'RMF'`` assumes a Random Markov Field type model on a 2d rectangular (Nx x Ny) lattice
-            with cost function E = sum_{<i,j>} E(s_i, s_j) + sum_i E(s_i) and nearest-neighbour interactions only.
+            with cost function :math:`E = \\sum_{\\langle i,j \\rangle} E(s_i, s_j) + \\sum_i E(s_i)` and nearest-neighbour interactions only.
 
         ints Nx, Ny, Nc : defining lattice.
-        beta (float): sets the inverse temperature used during the search. 
-            It is the most relevant parameter, with larger beta allowing to better zoom in on low energy states, 
+        beta (float): sets the inverse temperature used during the search.
+            It is the most relevant parameter, with larger beta allowing to better zoom in on low energy states,
             but making tensor network contraction numerically less stable.
         J (others): couplings.
-            For mode ``'Ising'``, it should be a list of [i, j, Jij].
-            For mode ``'RMF'``, it should be a 
+            For mode ``'Ising'``, it should be a list of :math:`[i, j, J_{ij}]`.
+            For mode ``'RMF'``, it should be a namedtuple [fun fac N Nx Ny]
 
     Returns:
         Obtained results are stored as instance attributes (see below).
 
     Attributes:
         energy: energy(ies) of states obtained from searching or sampling.
-        probability: log10 of the corresponding calculated probabilities.
+        probability: log2 of the most probable state obtained during the search.
         degeneracy: degeneracy of the ground state.
-        states: states of clusters from searching or sampling. 
-            In the mode ``'Ising'`` use method `binary_states` to get the bit strings.
-        discarded_probability: log10 of the largest probability discarded during the search.
-        negative_probability: a potential red flag. 
-            Takes values in [-1,0]. 
-            A negative value means that some conditional probabilities calculated from tensor network contraction were negative. 
-            This indicates that the contraction was not fully numerically stable. 
-            The worst case is shown. 
+        states: states of clusters from searching or sampling.
+            In the mode ``'Ising'`` use method :meth:`binary_states` to get the bit strings.
+        discarded_probability: log2 of the largest probability discarded during the search.
+        negative_probability: a potential red flag.
+            Takes values in [-1,0].
+            A negative value means that some conditional probabilities calculated from tensor network contraction were negative.
+            This indicates that the contraction was not fully numerically stable.
+            The worst case is shown.
             The value shows the ratio of negative and positive conditional probabilities for one cluster and partial configuration.
         logger: logger
         excitations_encoding: if the low-energy spectrum was searched, this is the index of the merging approach, which was used.
@@ -161,9 +248,9 @@ class otn2d:
     def __init__(self, mode='Ising', Nx=4, Ny=4, Nc=8, beta=1, J=None):
         self.mode = mode
         self.beta = beta
-        self.Nx_model = Nx # original shape
+        self.Nx_model = Nx  # original shape
         self.Ny_model = Ny
-        self.Nx = Nx  # perhaps can be rotated
+        self.Nx = Nx  # perhaps can be rotated later
         self.Ny = Ny
         if self.mode == 'Ising':
             self.Nc = Nc
@@ -184,7 +271,25 @@ class otn2d:
         self.degeneracy = 0
         self.states = np.zeros((0, Nx*Ny), dtype=self.indtype)
         if J is not None:
-            self._import_J(J)
+            if self.mode == 'Ising':
+                ii, jj, vv = zip(*J)
+                JJ = sparse.coo_matrix((vv, (ii, jj)), shape=(self.L, self.L))
+                # makes matrix J upper triangular
+                self.J = sparse.triu(JJ) + sparse.tril(JJ, -1).T
+                # makes sure that J is float
+                self.J = self.J.astype(dtype=float, copy=False)
+                self.active = 0  # number of active spins
+                self.ind0 = [[0]*self.Nx for _ in range(self.Ny)]
+                self.J0 = self.J.copy()
+                for ny in range(self.Ny_model):
+                    for nx in range(self.Nx_model):
+                        ind = self.Nc * (self.Nx_model * ny + nx) + np.arange(self.Nc)
+                        Jsum = np.sum(np.abs(self.J[ind, :].toarray()), axis=1) + np.sum(np.abs(self.J[:, ind].toarray()), axis=0)
+                        self.ind0[ny][nx] = ind[np.nonzero(Jsum > 1e-12)]
+                        self.active += len(self.ind0[ny][nx])
+            elif self.mode == 'RMF':
+                self.J = J
+                self.N = J.N
             self._divide_couplings()
 
     def save(self, file_name):
@@ -253,7 +358,7 @@ class otn2d:
             if state:
                 print(self.states[0])
         else:
-            print('No solution to show')
+            print('No solution to show.')
 
     def binary_states(self, number=-1):
         """
@@ -283,7 +388,7 @@ class otn2d:
             return decoded_states
         elif self.mode == 'RMF':
             return self.states[:ns]
-    
+
     def rotate_graph(self, rot=1):
         """
         Rotate 2d graph by 90 degrees.
@@ -291,31 +396,55 @@ class otn2d:
         It is used to contract peps and search from other directions.
         Rotations are cumulative.
         """
-        for _ in range(rot):
-            self.rotation +=1
-            order_full = np.arange(self.L)
-            order = np.arange(self.Nx * self.Ny)
-            order_i = np.arange(self.Nx * self.Ny)
-            for nx in range(self.Nx):
-                for ny in range(self.Ny):
-                    ii = ny*self.Nc*self.Nx + nx*self.Nc + np.arange(self.Nc)
-                    jj = (self.Nx - nx - 1)*self.Nc*self.Ny + ny*self.Nc + np.arange(self.Nc)
-                    order_full[ii] = jj
-                    ii = ny*self.Nx + nx
-                    jj = (self.Nx - nx - 1)*self.Ny + ny
-                    order[ii], order_i[jj] = jj, ii
-            self.Nx, self.Ny = self.Ny, self.Nx
-            self.J = self.J[order_full, :][:, order_full]
-            self.J = sparse.triu(self.J) + sparse.tril(self.J, -1).T
-            self.order = order_i[self.order]
+        if self.mode == 'Ising':
+            for _ in range(rot):
+                self.rotation += 1
+                order_full = np.arange(self.L)
+                order = np.arange(self.Nx * self.Ny)
+                order_i = np.arange(self.Nx * self.Ny)
+                for nx in range(self.Nx):
+                    for ny in range(self.Ny):
+                        ii = ny*self.Nc*self.Nx + nx*self.Nc + np.arange(self.Nc)
+                        jj = (self.Nx - nx - 1)*self.Nc*self.Ny + ny*self.Nc + np.arange(self.Nc)
+                        order_full[ii] = jj
+                        ii = ny*self.Nx + nx
+                        jj = (self.Nx - nx - 1)*self.Ny + ny
+                        order[ii], order_i[jj] = jj, ii
+                self.Nx, self.Ny = self.Ny, self.Nx
+                self.J = self.J[order_full, :][:, order_full]
+                self.J = sparse.triu(self.J) + sparse.tril(self.J, -1).T
+                self.order = order_i[self.order]
+        elif self.mode == 'RMF':
+            for _ in range(rot):
+                fact_new = {}
+                order_i = np.arange(self.Nx * self.Ny)
+                N_new = np.zeros((self.Nx, self.Ny), dtype=int)
+                for key in self.J.fac:
+                    if len(key) == 2:
+                        ny, nx = key
+                        fact_new[(self.Nx-nx-1, ny)] = self.J.fac[(ny, nx)]
+                    elif len(key) == 4:
+                        ny1, nx1, ny2, nx2 = key
+                        fact_new[(self.Nx-nx1-1, ny1, self.Nx-nx2-1, ny2)] = self.J.fac[(ny1, nx1, ny2, nx2)]
+                for nx in range(self.Nx):
+                    for ny in range(self.Ny):
+                        N_new[self.Nx-nx-1, ny] = self.N[ny, nx]
+                        ii = ny*self.Nx + nx
+                        jj = (self.Nx-nx-1)*self.Ny + ny
+                        order_i[ii] = jj
+                self.Nx, self.Ny = self.Ny, self.Nx
+                self.order = order_i[self.order]
+                self.J.fac = fact_new
+                self.N = N_new
+
         self.order_i[self.order] = np.arange(self.Nx * self.Ny)
         self.rotation = np.mod(self.rotation, 4)
         self._divide_couplings()
 
-    def precondition(self, mode='balancing', steps=2, beta_cond=[], Dmax_cond=[], max_scale=1024, tolS=1e-16, tolV=1e-10, max_sweeps=4):
+    def precondition(self, mode='balancing', steps=2, beta_cond=[], Dmax_cond=[], max_scale=1024, tolS=1e-16, tolV=1e-10, max_sweeps=10):
         """
         Apply the preconditioning procedure.
-        
+
         Args:
             mode (str): Type of heuristics used. For now, only 'balancing' trick is implemented.
             steps (int): number of smaller betas used (if they are not provided explicitly).
@@ -324,7 +453,7 @@ class otn2d:
             max_scale (float): bound on local rescaling used in one step.
             tolS (float): truncate smaller singular values during svd in boundary MPS.
             tolV (float): condition for overlap convergence during one sweep in boundary MPS.
-            max_sweeps (int): maximal number of sweeps of variational compression.             
+            max_sweeps (int): maximal number of sweeps of variational compression.
         """
         if mode is 'balancing':
             if not beta_cond:
@@ -344,13 +473,13 @@ class otn2d:
     def search_ground_state(self, M=2**10, relative_P_cutoff=1e-6,
                             min_dEng=1e-12,
                             Dmax=32, tolS=1e-16,
-                            tolV=1e-10, max_sweeps=20):
+                            tolV=1e-10, max_sweeps=10):
         """
         Searches for the most probable state (ground state) on a quasi-2d graph.
 
-        Merge matching configurations during branch-and-bound search going line (ny=0:Ny-1) by line. 
+        Merge matching configurations during branch-and-bound search going line (ny=0:Ny-1) by line.
         It keeps track of GS degeneracy, distinguishing different energies with precision min_dEng.
-        Probabilities kept as log10. Results are stored as instance attributes.
+        Probabilities kept as log2. Results are stored as instance attributes.
 
         Args:
             M (int): maximal number of branches (partial configurations) that are kept during the search.
@@ -359,9 +488,9 @@ class otn2d:
             Dmax (int): maximal bond dimensions used in boundary MPS.
             tolS (float): truncate smaller singular values during svd in boundary MPS.
             tolV (float): condition for overlap convergence during one sweep in boundary MPS.
-            max_sweeps (int): maximal number of sweeps of variational compression.    
+            max_sweeps (int): maximal number of sweeps of variational compression.
 
-        Returns: 
+        Returns:
             The lowest energy found.
         """
 
@@ -509,20 +638,20 @@ class otn2d:
 
     def gibbs_sampling(self, M=2**10,
                        Dmax=32, tolS=1e-15,
-                       tolV=1e-10, max_sweeps=20):
+                       tolV=1e-10, max_sweeps=10):
         """
         Samples from the Boltzman distribution on a quasi-2d graph.
 
-        Probabilities kept as log10. Results are stored as instance attributes.
+        Probabilities kept as log2. Results are stored as instance attributes.
 
         Args:
             M (int): number of configurations.
             Dmax (int): maximal bond dimensions used in boundary MPS.
             tolS (float): truncate smaller singular values during svd in boundary MPS.
             tolV (float): condition for overlap convergence during one sweep in boundary MPS.
-            max_sweeps (int): maximal number of sweeps of variational compression.    
+            max_sweeps (int): maximal number of sweeps of variational compression.
 
-        Returns: 
+        Returns:
             Sampled energies.
         """
 
@@ -607,14 +736,14 @@ class otn2d:
                                    max_dEng=0., lim_hd=0,
                                    min_dEng=1e-12,
                                    Dmax=32, tolS=1e-16,
-                                   tolV=1e-10, max_sweeps=20):
+                                   tolV=1e-10, max_sweeps=10):
         """
         Searches for low-energy spectrum on a quasi-2d graph.
 
         Merge matching configurations during branch-and-bound search going line (ny=0:Ny-1) by line.
         Information about excited states (droplets) is collected during merging, which allows reconstructing the low-energy spectrum.
         It keeps track of GS degeneracy, distinguishing different energies with precision min_dEng.
-        Probabilities kept as log10. Results are stored as instance attributes.
+        Probabilities kept as log2. Results are stored as instance attributes.
 
         Args:
             excitations_encoding (int): Approach used to define independent/elementary droplets
@@ -625,7 +754,7 @@ class otn2d:
                 (assuming, that the search itself was successful).
 
                 ``2`` Independent and elementary droplets determined based on adjacency matrix (i.e., graph of interactions).
-                Droplets which are not single-connected are discarded during merging, 
+                Droplets which are not single-connected are discarded during merging,
                 leaving only the elementary, single-connected ones.
                 A one-to-one correspondence between the low-energy spectrum and the stored excitation structure
                 might be lost when merging configurations with many layers of the excitation hierarchy.
@@ -640,7 +769,7 @@ class otn2d:
             Dmax (int): maximal bond dimensions used in boundary MPS.
             tolS (float): truncate smaller singular values during svd in boundary MPS.
             tolV (float): condition for overlap convergence during one sweep in boundary MPS.
-            max_sweeps (int): maximal number of sweeps of variational compression.    
+            max_sweeps (int): maximal number of sweeps of variational compression.
 
         Returns:
             The lowest energy found.
@@ -656,7 +785,7 @@ class otn2d:
             raise('Available droplets handling strategies are excitations_encoding = 1,2,3.')
         return Eng
 
-    def _search_low_energy_spectrum_v1(self, M=2**10, relative_P_cutoff=1e-6, max_dEng=0., lim_hd=0, min_dEng=1e-12, Dmax=32, tolS=1e-16, tolV=1e-10, max_sweeps=20):
+    def _search_low_energy_spectrum_v1(self, M=2**10, relative_P_cutoff=1e-6, max_dEng=0., lim_hd=0, min_dEng=1e-12, Dmax=32, tolS=1e-16, tolV=1e-10, max_sweeps=10):
         """
         Searching for most probable states on quasi-2d graph.
         Merge and keeps track of excitation.
@@ -831,7 +960,7 @@ class otn2d:
     def add_noise(self, amplitude=1e-7):
         """
         Adds a small random noise to the couplings.
-        
+
         It should be used to remove accidental degeneracies while searching low-energy states in 'excitations_encoding' 2 or 3.
 
         Args:
@@ -847,24 +976,16 @@ class otn2d:
 
         elif self.mode == 'RMF':
             func_new = {}
-            for key, value in self.func.items():
+            for key, value in self.J.fun.items():
                 func_new[key] = value.copy()
                 if len(value.shape) == 1:
                     func_new[key] += ((np.random.rand(value.shape[0])*2-1)*amplitude)
+            self.J.fun = func_new
 
-            self.func_clean = self.func
-            self.func = func_new
-
-    # def noise_clean(self):
-    #     try:
-    #         self.func = self.func_clean
-    #     except NameError:
-    #         pass
-
-    def _search_low_energy_spectrum_v2(self, M=2**10, relative_P_cutoff=1e-6, Dmax=32, tolS=1e-16, tolV=1e-10, max_dEng=0., min_dEng=1e-12, max_sweeps=20, lim_hd=0):
+    def _search_low_energy_spectrum_v2(self, M=2**10, relative_P_cutoff=1e-6, Dmax=32, tolS=1e-16, tolV=1e-10, max_dEng=0., min_dEng=1e-12, max_sweeps=10, lim_hd=0):
         """
-        Searching for most probable states on quasi-2d graph.   
-        Merge and keeps track of excitation. 
+        Searching for most probable states on quasi-2d graph.
+        Merge and keeps track of excitation.
         Independence determined based on adjecency graph.
         Might miss some states from higher levels of droplets hierarchy.
         """
@@ -1034,12 +1155,12 @@ class otn2d:
         self._reset_adj(J=self.J0, Nx=self.Nx_model, Ny=self.Ny_model, ind=self.ind0)
         return Eng
 
-    def _search_low_energy_spectrum_v3(self, M=2*10, relative_P_cutoff=1e-6, Dmax = 32, tolS = 2.**(-52), tolV = 1e-12, max_dEng = 0, min_dEng = 1e-12, max_sweeps = 20, lim_hd = 0):
+    def _search_low_energy_spectrum_v3(self, M=2*10, relative_P_cutoff=1e-6, Dmax = 32, tolS = 2.**(-52), tolV = 1e-12, max_dEng = 0, min_dEng = 1e-12, max_sweeps=10, lim_hd = 0):
         """
         Searching for most probable states on quasi-2d graph.
-        Merge and keeps track of excitation. 
+        Merge and keeps track of excitation.
         Independence determined based on adjecency graph.
-        here forms only 1 layer of hierarchy of excitations. 
+        here forms only 1 layer of hierarchy of excitations.
         """
 
         keep_total_time, keep_time = time.time(), time.time()
@@ -1144,16 +1265,16 @@ class otn2d:
                     uni[ind] = ui
                     degn[ind] = cdeg
                     # new branch excitation list <- copy from old
-                    bel  = self.el[inds[ui]][:] 
+                    bel  = self.el[inds[ui]][:]
                     new_bel = []
                     # add other merged branches as new excitations (possible with subexcitations)
                     for ii, En, pr in confs:
                         conf_dEng = En - mEng
-                        if (conf_dEng <= max_dEng) and (ii != ui):  # if has small exc energy and is not the main branch 
+                        if (conf_dEng <= max_dEng) and (ii != ui):  # if has small exc energy and is not the main branch
                             dstate = np.bitwise_xor(states[ui], states[ii])  # find where the states differ (define excitation)
                             dpos = dstate.nonzero()[0]
                             dstate = dstate[dpos]
-                            
+
                             nsel = []  ## list of subexcitations of dstate overlaping with it
                             for sne in self.el[inds[ii]]:  # starts adding subexcitations
                                 if (sne[0][0] + conf_dEng <= max_dEng) and (self._exc_overlap((dpos, dstate), sne[0][1])):
@@ -1177,7 +1298,7 @@ class otn2d:
                                 break
                         if to_add:
                             distinct_new_bel.append(x)
-                    bel.extend(distinct_new_bel)                    
+                    bel.extend(distinct_new_bel)
                     el.append(bel)  #finish merging given branch
 
                 prob = probn
@@ -1201,7 +1322,7 @@ class otn2d:
             self.logger.info('Elapsed: %.2f seconds', time.time() - keep_time)
             vind[:, 1:] = vind[:, :-1]  ## reset vind before going to next layer
             vind[:, 0]  = 0             ## by shifting the one corresponding to "central" bond to begining
-        
+
         # at the end greadily removes similar droplets
         bel = sorted(self.el[0], key=lambda x: x[0][0]) # sorted by energy
         distinct_bel = []
@@ -1240,14 +1361,14 @@ class otn2d:
         """
         Decode excitation structure found into actuall low-energy states.
 
-        It can be used after method `search_low_energy_spectrum`.
-        
+        It can be used after method :meth:`search_low_energy_spectrum`.
+
         Args:
             max_dEng (float): bound on excitation energy.
             max_states (int): bound on a number of generated states.
                 States with smallest energies are selected.
         """
-        
+
         Eng, flip = self._exc_unpack(max_dEng=max_dEng, max_states=max_states)
         gs = self.states[0]
 
@@ -1267,27 +1388,6 @@ class otn2d:
         self.states = states
         return Eng[0]
 
-    def _import_J(self, J):
-        """
-        Import list of couplings into class.
-        """
-        if self.mode == 'Ising':
-            ii, jj, vv = zip(*J)
-            JJ = sparse.coo_matrix((vv, (ii, jj)), shape=(self.L, self.L))
-            # makes matrix J upper triangular
-            self.J = sparse.triu(JJ) + sparse.tril(JJ, -1).T
-            # makes sure that J is float
-            self.J = self.J.astype(dtype=float, copy=False)
-            self.active = 0 # number of active spins
-            self.ind0 = [[0]*self.Nx for _ in range(self.Ny)]
-            self.J0 = self.J.copy()
-            for ny in range(self.Ny_model):
-                for nx in range(self.Nx_model):
-                    ind = self.Nc * (self.Nx_model * ny + nx) + np.arange(self.Nc)
-                    Jsum = np.sum(np.abs(self.J[ind,:].toarray()), axis = 1) + np.sum(np.abs(self.J[:,ind].toarray()), axis = 0)
-                    self.ind0[ny][nx] = ind[np.nonzero(Jsum > 1e-12)]
-                    self.active += len(self.ind0[ny][nx])
-
     def _divide_couplings(self):
         """
         Preselect couplings contributing to peps tensor.
@@ -1297,13 +1397,11 @@ class otn2d:
         self.ll = np.ones((self.Ny, self.Nx), dtype=int)
         self.ld = np.ones((self.Ny, self.Nx), dtype=int)
 
-        self.N = np.zeros((self.Ny, self.Nx), dtype=int) #  number of states in local block
-
         if self.mode == 'Ising':
+            self.N = np.zeros((self.Ny, self.Nx), dtype=int) #  number of states in local block
             # indices corresponding to active spins in the block
             self.ind = [[0]*self.Nx for _ in range(self.Ny)]
             self.sN = np.zeros((self.Ny, self.Nx), dtype=int) # number of spins in local block
-
 
             for ny in range(self.Ny):
                 for nx in range(self.Nx):
@@ -1344,36 +1442,27 @@ class otn2d:
                         self.sd[ny-1][nx] = len(idown)
                         self.su[ny][nx]   = len(idown)
                         self.ld[ny-1][nx] = 2**len(idown)
+        elif self.mode == 'RMF':
+            for ny in range(self.Ny):
+                for nx in range(self.Nx):
+                    if ((ny, nx-1, ny, nx) in self.J.fac) or ((ny, nx, ny, nx-1) in self.J.fac):
+                        self.ll[ny, nx]   = self.N[ny][nx-1]
+                    if ((ny, nx, ny, nx+1) in self.J.fac) or ((ny, nx+1, ny, nx) in self.J.fac):
+                        self.lr[ny, nx]   = self.N[ny][nx+1]
+                    if ((ny-1, nx, ny, nx) in self.J.fac) or ((ny, nx, ny-1, nx) in self.J.fac):
+                        self.lu[ny, nx]   = self.N[ny-1][nx]
+                    if ((ny, nx, ny+1, nx) in self.J.fac) or ((ny+1, nx, ny, nx) in self.J.fac):
+                        self.ld[ny, nx]   = self.N[ny+1][nx]
         self._reset_X()
 
-    # def _divide_couplings(self):
-    #     """Selects couplings contributing to peps tensor"""
-    #     # indices corresponding to active spins in the block
-    #     self.active = 0 # number of active spins
-    #     self.ll = np.ones((self.Ny, self.Nx), dtype=int)
-    #     self.ld = np.ones((self.Ny, self.Nx), dtype=int)
-    #     self.lr = np.ones((self.Ny, self.Nx), dtype=int)
-    #     self.lu = np.ones((self.Ny, self.Nx), dtype=int)
-    #     for ny in range(self.Ny):
-    #         for nx in range(self.Nx):
-    #             if ((ny, nx-1, ny, nx) in self.fact) or ((ny, nx, ny, nx-1) in self.fact):
-    #                 self.ll[ny, nx]   = self.N[ny][nx-1]
-    #             if ((ny, nx, ny, nx+1) in self.fact) or ((ny, nx+1, ny, nx) in self.fact):
-    #                 self.lr[ny, nx]   = self.N[ny][nx+1]
-    #             if ((ny-1, nx, ny, nx) in self.fact) or ((ny, nx, ny-1, nx) in self.fact):
-    #                 self.lu[ny, nx]   = self.N[ny-1][nx]
-    #             if ((ny, nx, ny+1, nx) in self.fact) or ((ny+1, nx, ny, nx) in self.fact):
-    #                 self.ld[ny, nx]   = self.N[ny+1][nx]             
-    #     self._reset_X()
-
-    #  Auxliary functions for local states numbering 
+    #  Auxliary functions for local states numbering
 
     def _cluster_configurations(self, N):
         """
         All spin configurations in a block.
         """
-        st = np.array(list(itertools.product([1, 0], repeat=N)), dtype = np.int8) #all configurations in block
-        st = st[:,::-1]                                     #first spin changing fastest
+        st = np.array(list(itertools.product([1, 0], repeat=N)), dtype = np.int8)  # all configurations in block
+        st = st[:,::-1]  # first spin changing fastest
         return st
 
     def _ind_bond_down(self, st_number, ny, nx):
@@ -1414,26 +1503,52 @@ class otn2d:
         return ind_delta, ind_rest
 
     def _update_Eng(self, states, ny, nx):
-        st  = 2*self._cluster_configurations(self.sN[ny][nx])-1
-        Es  = 1.*np.sum(np.dot(st, np.triu(self.Jin[ny][nx], 1)) * st, 1) + np.dot(st, self.Jin[ny][nx].diagonal())  ## inner cluster energy
+        if self.mode == 'Ising':
+            st  = 2*self._cluster_configurations(self.sN[ny][nx])-1
+            Es  = 1.*np.sum(np.dot(st, np.triu(self.Jin[ny][nx], 1)) * st, 1) + np.dot(st, self.Jin[ny][nx].diagonal())  # inner cluster energy
 
-        pos = ny*self.Nx+nx        # position of cluster
-        dEng = Es[states[:, pos]]  # add energy of cluster for every configuration
+            pos = ny*self.Nx+nx        # position of cluster
+            dEng = Es[states[:, pos]]  # add energy of cluster for every configuration
 
-        if nx > 0:  ## if there is a cluster to the left
-            posl  = ny*self.Nx+(nx-1)
-            ext  = 2*self._cluster_configurations( self.sl[ny][nx] ).T -1    #indices corresponding to left leg
-            Esl   = np.dot(np.dot(st, self.Jl[ny][nx]), ext)
-            indr  = self._ind_bond_right(states[:, posl], ny, nx-1)
-            dEng  += Esl[states[:, pos], indr]
+            if nx > 0:  # if there is a cluster to the left
+                posl  = ny*self.Nx+(nx-1)
+                ext  = 2*self._cluster_configurations( self.sl[ny][nx] ).T -1  # indices corresponding to left leg
+                Esl   = np.dot(np.dot(st, self.Jl[ny][nx]), ext)
+                indr  = self._ind_bond_right(states[:, posl], ny, nx-1)
+                dEng  += Esl[states[:, pos], indr]
 
-        if ny > 0:  ## if there is a cluster to the left
-            posu  = (ny-1)*self.Nx+nx
-            ext  = 2*self._cluster_configurations( self.su[ny][nx] ).T -1    #indices corresponding to up leg
-            Esl   = np.dot(np.dot(st, self.Ju[ny][nx]), ext)
-            indu  = self._ind_bond_down(states[:, posu], ny-1, nx)
-            dEng  += Esl[states[:, pos], indu]
-
+            if ny > 0:  # if there is a cluster to the left
+                posu  = (ny-1)*self.Nx+nx
+                ext  = 2*self._cluster_configurations( self.su[ny][nx] ).T -1  # indices corresponding to up leg
+                Esl   = np.dot(np.dot(st, self.Ju[ny][nx]), ext)
+                indu  = self._ind_bond_down(states[:, posu], ny-1, nx)
+                dEng  += Esl[states[:, pos], indu]
+        elif self.mode == 'RMF':
+            N = self.N[ny][nx]
+            if (ny, nx) in self.J.fac:
+                Es = self.J.fun[self.J.fac[(ny, nx)]]
+            else:
+                Es = np.zeros(self.N[ny][nx])  ## inner cluster energy
+            pos = ny*self.Nx+nx        # position of cluster
+            dEng = Es[states[:, pos]]  # add energy of cluster for every configuration
+            if nx > 0:  ## if there is a cluster to the left
+                if (ny, nx-1, ny, nx) in self.J.fac:  #indices corresponding to leg 1 (left)
+                    Esl = self.J.fun[self.J.fac[(ny, nx-1, ny, nx)]].T
+                elif (ny, nx, ny, nx-1) in self.J.fac:
+                    Esl = self.J.fun[self.J.fac[(ny, nx, ny, nx-1)]]
+                else:
+                    Esl = np.zeros((N, self.N[ny][nx-1]))
+                posl  = ny*self.Nx+(nx-1)
+                dEng  += Esl[states[:, pos], states[:, posl]]
+            if ny > 0:  ## if there is a cluster above
+                if (ny-1, nx, ny, nx) in self.J.fac:   #indices corresponding to leg 4 (up)
+                    Esu = self.J.fun[self.J.fac[(ny-1, nx, ny, nx)]].T
+                elif (ny, nx, ny-1, nx) in self.J.fac:
+                    Esu = self.J.fun[self.J.fac[(ny, nx, ny-1, nx)]]
+                else:
+                    Esu = np.zeros((N, self.N[ny-1][nx]))
+                posu  = (ny-1)*self.Nx+nx
+                dEng  += Esu[states[:, pos], states[:, posu]]
         return dEng
 
     # Auxliary functions for PEPS contractions
@@ -1485,9 +1600,73 @@ class otn2d:
             for ii in range(2**L2):
                 Es_full[ind_rest+ind_delta[ii], :, ii, :, :] = A[ind_rest+ind_delta[ii], :, :, :]*self.Xd[ny][nx][ii]
 
+        elif self.mode == 'RMF':
+            N = self.N[ny][nx]  # size of node
+            L1, L2, L3, L4 = self.ll[ny, nx], self.ld[ny, nx], self.lr[ny, nx], self.lu[ny, nx] # size of outer legs
+            #cluster self energy
+            if (ny, nx) in self.J.fac:
+                Es = np.reshape(self.J.fun[self.J.fac[(ny, nx)]], N)
+            else:
+                Es = np.zeros(N)
+            minEs = np.min(Es)
+            Es = self.beta*(minEs-Es)    #subtract Esmax for conditioning
+
+            if (ny, nx-1, ny, nx) in self.J.fac:  #indices corresponding to leg 1 (left)
+                Ese1 = self.J.fun[self.J.fac[(ny, nx-1, ny, nx)]].T
+            elif (ny, nx, ny, nx-1) in self.J.fac:
+                Ese1 = self.J.fun[self.J.fac[(ny, nx, ny, nx-1)]]
+            else:
+                Ese1 = np.zeros((N, L1))
+
+            minEse1 = np.min(Ese1) #0
+            Ese1    = self.beta*(minEse1-Ese1)
+
+            if (ny-1, nx, ny, nx) in self.J.fac:   #indices corresponding to leg 4 (up)
+                Ese4 = self.J.fun[self.J.fac[(ny-1, nx, ny, nx)]].T
+            elif (ny, nx, ny-1, nx) in self.J.fac:
+                Ese4 = self.J.fun[self.J.fac[(ny, nx, ny-1, nx)]]
+            else:
+                Ese4 = np.zeros((N, L4))
+
+            minEse4 = np.min(Ese4) #0
+            Ese4    = self.beta*(minEse4-Ese4)
+
+            #collect exp(-beta (Es + Eleft + Eup))
+            Es_full  = np.reshape(np.tile(Es[:, np.newaxis], (1, L1*L4)), (N, L1, L4))
+            Es_full += np.reshape(np.tile(np.reshape(Ese1, (N*L1, 1)), (1, L4)), (N, L1, L4))
+            Es_full += np.reshape(np.tile(Ese4, (1, L1) ), (N, L1, L4) )
+
+            Es_full  = np.exp(Es_full)
+
+            for ii in range(L4):
+                Es_full[:, :, ii] *= self.Xu[ny, nx, ii]  #conditioning
+
+            for ii in range(L1):
+                Es_full[:, ii, :] *= self.Xl[ny, nx, ii]  #conditioning
+
+            #add delta L3 (right) + conditioning
+            A = np.zeros((N, L1, L3, L4))
+            if L3 == 1:
+                A[:, :, 0, :] = Es_full[:, :, :]*self.Xr[ny, nx, 0]
+            elif L3 == N:
+                for ii in range(L3):
+                    A[ii, :, ii, :] = Es_full[ii, :, :]*self.Xr[ny, nx, ii]
+            else:
+                Exception(' Function size is wrong ')
+
+            #add delta L2 (down) + conditioning
+            Es_full = np.zeros((N, L1, L2, L3, L4))
+            if L2 == 1:
+                Es_full[:, :, 0, :, :] = A[:, :, :, :]*self.Xd[ny, nx, 0]
+            elif L2 == N:
+                for ii in range(L2):
+                    Es_full[ii, :, ii, :, :] = A[ii, :, :, :]*self.Xd[ny, nx, ii]
+            else:
+                Exception(' Function size is wrong ')
+
         return Es_full
 
-    def _setup_rhoT(self, Dmax=64, tolS=1e-16, tolV=1e-10, max_sweeps=20):
+    def _setup_rhoT(self, Dmax=64, tolS=1e-16, tolV=1e-10, max_sweeps=10):
         """
         Creates environment for layers of peps; from top.
         """
@@ -1507,7 +1686,7 @@ class otn2d:
             self.rhoT_discarded[ny] = max(self.rhoT[ny].discarded)
             #self.rhoT[ny].normC = 1.0
 
-    def _setup_rhoB(self, Dmax = 64, tolS = 2.**(-52), tolV = 1e-12, max_sweeps = 20):
+    def _setup_rhoB(self, Dmax = 64, tolS = 2.**(-52), tolV = 1e-12, max_sweeps=10):
         """
         Creates environment for layers of peps; from bottom.
         """
@@ -1527,7 +1706,7 @@ class otn2d:
             self.rhoB_discarded[ny+1] = max(self.rhoB[ny+1].discarded)
             #self.rhoB[ny+1].normC = 1.0
 
-    def _setup_rhoL(self, Dmax = 64, tolS = 2.**(-52), tolV = 1e-12, max_sweeps = 20):
+    def _setup_rhoL(self, Dmax = 64, tolS = 2.**(-52), tolV = 1e-12, max_sweeps=10):
         """
         Creates environment for layers of peps; from left.
         """
@@ -1548,7 +1727,7 @@ class otn2d:
             self.rhoL_discarded[nx+1] = max(self.rhoL[nx+1].discarded)
             #self.rhoL[nx+1].normC = 1.0
 
-    def _setup_rhoR(self, Dmax = 64, tolS = 2.**(-52), tolV = 1e-12, max_sweeps = 20):
+    def _setup_rhoR(self, Dmax = 64, tolS = 2.**(-52), tolV = 1e-12, max_sweeps=10):
         """
         Creates environment for layers of peps; from right.
         """
@@ -1591,7 +1770,7 @@ class otn2d:
         T1 = np.tensordot(RL, AT, axes=(0, 0))
         T2 = np.tensordot(T1, RR, axes= (1, 0))
         Pn = np.tensordot(A, T2, axes = ((1, 2), (0, 1)))
-        mPn = Pn.min()  # error handling: negative probabilities 
+        mPn = Pn.min()  # error handling: negative probabilities
         if mPn < 0.:
             ind = (Pn<np.abs(mPn))
             Pn[ind] = np.abs(mPn)
@@ -1638,7 +1817,7 @@ class otn2d:
                     env = self.rhoB[ny].bond_env_mix(self.rhoT[ny], nx)
                     _ , scale = splinalg.matrix_balance(env, permute = False, separate = True)
                     scale = np.minimum(np.maximum(scale[0], 1/max_scale), max_scale)
-                    
+
                     o1 = self.rhoB[ny].expectation_mix(self.rhoT[ny], nx)
                     o1B = np.linalg.norm(self.rhoB[ny].A[nx])
                     o1T = np.linalg.norm(self.rhoT[ny].A[nx])
@@ -1675,15 +1854,15 @@ class otn2d:
                     env = self.rhoB[ny].bond_env_mix(self.rhoT[ny], nx)
                     _ , scale = splinalg.matrix_balance(env, permute = False, separate = True)
                     scale = np.minimum(np.maximum(scale[0], 1/max_scale), max_scale)
-                    
+
                     o1 = self.rhoB[ny].expectation_mix(self.rhoT[ny], nx)
                     o1B = np.linalg.norm(self.rhoB[ny].A[nx])
                     o1T = np.linalg.norm(self.rhoT[ny].A[nx])
                     o1 *= 1/(o1B*o1T)
-                    
+
                     self.rhoB[ny].apply_diagonalO(scale, nx)
                     self.rhoT[ny].apply_diagonalO(1/scale, nx)
-                    
+
                     o2B = np.linalg.norm(self.rhoB[ny].A[nx])
                     o2T = np.linalg.norm(self.rhoT[ny].A[nx])
                     o2 = self.rhoB[ny].expectation_mix(self.rhoT[ny], nx)
@@ -1724,7 +1903,7 @@ class otn2d:
                     env = self.rhoL[nx].bond_env_mix(self.rhoR[nx], ny)
                     _ , scale = splinalg.matrix_balance(env, permute = False, separate = True)
                     scale = np.minimum(np.maximum(scale[0], 1/max_scale), max_scale)
-                    
+
                     o1 = self.rhoL[nx].expectation_mix(self.rhoR[nx], ny)
                     o1L = np.linalg.norm(self.rhoL[nx].A[ny])
                     o1R = np.linalg.norm(self.rhoR[nx].A[ny])
@@ -1747,7 +1926,7 @@ class otn2d:
                     else:
                         self.rhoL[nx].apply_diagonalO(1/scale, ny)
                         self.rhoR[nx].apply_diagonalO(scale, ny)
-                    
+
                     if ny > 0:
                         self.rhoL[nx].orth_right(ny)
                         self.rhoL[nx].attach_AC()
@@ -1760,12 +1939,12 @@ class otn2d:
                     env = self.rhoL[nx].bond_env_mix(self.rhoR[nx], ny)
                     _ , scale = splinalg.matrix_balance(env, permute = False, separate = True)
                     scale = np.minimum(np.maximum(scale[0], 1/max_scale), max_scale)
-                    
+
                     o1 = self.rhoL[nx].expectation_mix(self.rhoR[nx], ny)
                     o1L = np.linalg.norm(self.rhoL[nx].A[ny])
                     o1R = np.linalg.norm(self.rhoR[nx].A[ny])
                     o1 *= 1/(o1L*o1R)
-                    
+
                     self.rhoL[nx].apply_diagonalO(scale, ny)
                     self.rhoR[nx].apply_diagonalO(1/scale, ny)
                     o2L = np.linalg.norm(self.rhoL[nx].A[ny])
@@ -1794,7 +1973,7 @@ class otn2d:
 
             self.overlaps_lr = np.vstack([self.overlaps_lr, overlaps])
             self.rhoL, self.rhoR = [], []
-    
+
     ##############
     # functions handling excitations
     ##############
@@ -1807,11 +1986,11 @@ class otn2d:
         self.invd = {}  # dict giving partial inverse for better searching
         self.el = [[]] # list of excitations for all branches
         self.free_d = 0  # first free index in dict
-        
-    def _reset_adj(self, J, Nx, Ny, ind):   
+
+    def _reset_adj(self, J, Nx, Ny, ind):
         if self.mode == 'Ising':
             # adjecency matrix
-            self.adj = (sparse.triu(J, 1) != 0) + (sparse.triu(J, 1).T != 0) 
+            self.adj = (sparse.triu(J, 1) != 0) + (sparse.triu(J, 1).T != 0)
             self.adj = self.adj.toarray()  # faster to keep it as a full matrix
             self.xor2ind = []
             for ny in range(Ny):
@@ -1828,7 +2007,7 @@ class otn2d:
             # adjecency matrix
             self.adj_Nx = Nx
             self.adj_Ny = Ny
-            
+
     def exc_show_properties(self):
         """
         Displays some info on the tree storing excitation structure.
@@ -1847,7 +2026,7 @@ class otn2d:
         if sh in self.invd:
             suspects = self.invd[sh]
             for ss in suspects:
-                if np.array_equal(droplet[0], self.d[ss][0]) and np.array_equal(droplet[1], self.d[ss][1]):                
+                if np.array_equal(droplet[0], self.d[ss][0]) and np.array_equal(droplet[1], self.d[ss][1]):
                     return ss  # exhitation already exists in d
             # it does not exists in d
             self.invd[sh].append(newkey)  # adds index to invd
@@ -1886,7 +2065,7 @@ class otn2d:
                 #ind  = np.any(self.adj[gr, :][:, rest].toarray(), axis=0)  is adj is sparse
                 gr   = rest[ind]
                 rest = rest[~ind]
-            return (rest.size == 0)   ## if rest.size == 0 then it is connected, else if is not connected    
+            return (rest.size == 0)   # if rest.size == 0 then it is connected, else if is not connected
         elif self.mode == 'RMF':
             gr, rest = exc[0][:1], exc[0][1:]  # starting point
             while (gr.size > 0) and (rest.size > 0):
@@ -1918,7 +2097,7 @@ class otn2d:
             exc1 = self._exc_xor2ind(exc1)
             exc2 = self._exc_xor2ind(exc2)
             return np.any(self.adj[exc1, :][:, exc2])
-        elif self.mode == 'RMF':    
+        elif self.mode == 'RMF':
             ## overlap if nearest-neighbours
             nx1 = np.mod(exc1[0], self.adj_Nx)
             ny1 = exc1[0] // self.adj_Nx
@@ -1937,7 +2116,7 @@ class otn2d:
             return len(dstate)
         elif self.mode == 'RMF':
             return sum( bin(st).count('1') for st in dstate)
-    
+
     def _exc_hd_comp(self, ie1, ie2):
         """
         Hamming distance of the overlap of two droplets.
@@ -1948,8 +2127,8 @@ class otn2d:
 
         l1, l2 = len(exc1[0]), len(exc2[0])
         n1, n2, hd = 0, 0, 0
-        
-        if self.mode == 'Ising':    
+
+        if self.mode == 'Ising':
             while (n1 < l1) and (n2 < l2):
                 if (exc1[0][n1] == exc2[0][n2]):
                     hd += bin(np.bitwise_xor(exc1[1][n1], exc2[1][n2])).count('1')
@@ -1993,7 +2172,7 @@ class otn2d:
             dpos2, dstate2 = self.d[ie2]
         else:
             dpos2, dstate2 = ie2
-        
+
         l1 = len(dpos1)
         l2 = len(dpos2)
         dpos = np.zeros(l1+l2, dtype=np.int)
@@ -2019,7 +2198,7 @@ class otn2d:
                 dstate[n] = dstate2[n2]
                 n2 += 1
                 n += 1
-        
+
         if (n1 < l1):
             dpos[n:n+l1-n1] = dpos1[n1:]
             dstate[n:n+l1-n1] = dstate1[n1:]
@@ -2031,7 +2210,6 @@ class otn2d:
         dpos = dpos[:n]
         dstate = dstate[:n]
         return dpos, dstate
-
 
     def _exc_clear_d(self):
         """
@@ -2118,7 +2296,7 @@ class otn2d:
             for kk in range(len(Eng)):
                 while excs[kk][-1][0][2] >= nn:
                     excs[kk].pop()
-        return np.array(Eng), flip, #, np.array(Pn), 
+        return np.array(Eng), flip, #, np.array(Pn),
 
     def _exc_unpack_v2(self, l, max_dEng=0., max_states=np.inf, one_layer=False):
         """
@@ -2212,4 +2390,4 @@ class otn2d:
             Eng = exc[0][0]
             kk = self.d[exc[0][1]]
             print("%1d "%(layer)+' '+"|- %0.4f "%(Eng)+' : '+' '.join(map(str, kk[0]))+' | '+' '.join(map(str, kk[1])), file=f)
-            self._print_exc_f(f, exc[1], layer+1)
+            self._exc_print_f(f, exc[1], layer+1)

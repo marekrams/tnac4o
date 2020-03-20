@@ -5,7 +5,7 @@ from otn2d import otn2d
 
 
 def search_spectrum_droplet(L=128, ins=1,
-                            rot=0, beta=4,
+                            rot=0, beta=3,
                             M=1024, relative_P_cutoff=1e-6,
                             excitations_encoding=1,
                             dE=1., hd=0,
@@ -75,8 +75,8 @@ if __name__ == "__main__":
                         help="Instance number (1-100). Default is 1.")
     parser.add_argument("-r", type=int, default=0,
                         help="Rotate graph by 90 deg r times. Default is 0. Used to try to search/contract from different sides.")
-    parser.add_argument("-b", type=float, default=4,
-                        help="Inverse temperature.")
+    parser.add_argument("-b", type=float, default=3,
+                        help="Inverse temperature. Default is set at 3.")
     parser.add_argument("-M", type=int, default=2**10,
                         help="Maximal number of partial states kept during branch and bound search.")
     parser.add_argument("-P", type=float, default=1e-6,

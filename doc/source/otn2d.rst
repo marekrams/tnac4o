@@ -1,8 +1,5 @@
-otn2d package
-=============
-
-Submodules
-----------
+Modules
+=======
 
 otn2d.otn2d module
 ------------------
@@ -16,14 +13,6 @@ otn2d.mps module
 ----------------
 
 .. automodule:: otn2d.mps
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: otn2d
    :members:
    :undoc-members:
    :show-inheritance:

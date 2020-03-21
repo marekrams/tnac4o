@@ -1,7 +1,7 @@
 """
 The main module of the package.
 It puts together the heuristics to solve
-Ising-type optimization problems defined on a quasi-2d lattice (including e.g., chimera graph),
+Ising-type optimization problems defined on a quasi-2d lattice (e.g., chimera graph),
 or a Random Markov Field on 2d rectangular lattice.
 """
 
@@ -902,8 +902,7 @@ class otn2d:
                             dstate = np.bitwise_xor(states[ui], states[ii])
                             dpos = dstate.nonzero()[0]
                             dstate = dstate[dpos]
-                            hamming = self._exc_hd(dstate)
-                            if hamming >= lim_hd:
+                            if (lim_hd <= 1) or (self._exc_hd(dstate) >= lim_hd):
                                 dfirst, dlast = dpos[0], self.Nx*ny+nx
                                 dP = pr-probn[ind]
                                 di = self._exc_add_to_d(dpos, dstate)  # dict index
@@ -1100,9 +1099,8 @@ class otn2d:
                             dstate = np.bitwise_xor(states[ui], states[ii])
                             dpos = dstate.nonzero()[0]
                             dstate = dstate[dpos]
-                            hamming = self._exc_hd(dstate)
                             # if not elementary then discard it
-                            if (hamming >= lim_hd) and self._exc_elementary((dpos, dstate)):
+                            if (lim_hd <= 1 or self._exc_hd(dstate) >= lim_hd) and self._exc_elementary((dpos, dstate)):
                                 di = self._exc_add_to_d(dpos, dstate)  # dict index
                                 sel = []  # sub-excitations list
                                 for sne in self.el[inds[ii]]:  # starts adding subexcitations
@@ -1155,7 +1153,7 @@ class otn2d:
         self._reset_adj(J=self.J0, Nx=self.Nx_model, Ny=self.Ny_model, ind=self.ind0)
         return Eng
 
-    def _search_low_energy_spectrum_v3(self, M=2*10, relative_P_cutoff=1e-6, Dmax = 32, tolS = 2.**(-52), tolV = 1e-12, max_dEng = 0, min_dEng = 1e-12, max_sweeps=10, lim_hd = 0):
+    def _search_low_energy_spectrum_v3(self, M=2*10, relative_P_cutoff=1e-6, Dmax=32, tolS=2.**(-52), tolV=1e-12, max_dEng=0, min_dEng=1e-12, max_sweeps=10, lim_hd=0):
         """
         Searching for most probable states on quasi-2d graph.
         Merge and keeps track of excitation.
@@ -1284,22 +1282,26 @@ class otn2d:
                                 substate = (dpos, dstate)
                                 for sdi in sflip[nn]:
                                     substate = self._exc_merge(substate, sdi)
-                                if self._exc_hd(substate[1]) >= lim_hd and self._exc_elementary(substate): # and excs.overlap2(dstate, sne[0][1]):
+                                if (lim_hd <= 1 or self._exc_hd(substate[1]) >= lim_hd) and self._exc_elementary(substate): # and excs.overlap2(dstate, sne[0][1]):
                                     sdi = self._exc_add_to_d(*substate)
                                     new_bel.append( ((sEng[nn] + conf_dEng, sdi), ()) )
                     new_bel = sorted(new_bel, key=lambda x: x[0][0]) # sorted by energy
-                    distinct_new_bel = []
-                    for x in new_bel:
-                        to_add = True
-                        for y in distinct_new_bel:
-                            hd = self._exc_hd_comp(x[0][1], y[0][1])
-                            if hd < lim_hd:
-                                to_add=False
-                                break
-                        if to_add:
-                            distinct_new_bel.append(x)
-                    bel.extend(distinct_new_bel)
-                    el.append(bel)  #finish merging given branch
+                    
+                    bel.extend(new_bel)
+                    el.append(bel)  # finish merging given branch
+
+                    # distinct_new_bel = []
+                    # for x in new_bel:
+                    #     to_add = True
+                    #     for y in distinct_new_bel:
+                    #         hd = self._exc_hd_comp(x[0][1], y[0][1])
+                    #         if hd < lim_hd:
+                    #             to_add=False
+                    #             break
+                    #     if to_add:
+                    #         distinct_new_bel.append(x)
+                    # bel.extend(distinct_new_bel)
+                    # el.append(bel)  # finish merging given branch
 
                 prob = probn
                 deg = degn
@@ -1325,17 +1327,20 @@ class otn2d:
 
         # at the end greadily removes similar droplets
         bel = sorted(self.el[0], key=lambda x: x[0][0]) # sorted by energy
-        distinct_bel = []
-        for x in bel:
-            to_add = True
-            for y in distinct_bel:
-                hd = self._exc_hd_comp(x[0][1], y[0][1])
-                if hd < lim_hd:
-                    to_add=False
-                    break
-            if to_add:
-                distinct_bel.append(x)
-        self.el[0] = distinct_bel  #finish merging given branch
+        if lim_hd > 1:
+            distinct_bel = []
+            for x in bel:
+                to_add = True
+                for y in distinct_bel:
+                    hd = self._exc_hd_comp(x[0][1], y[0][1])
+                    if hd < lim_hd:
+                        to_add=False
+                        break
+                if to_add:
+                    distinct_bel.append(x)
+            self.el[0] = distinct_bel  #finish merging given branch
+        else:
+            self.el[0] = bel
         self._exc_clear_d()
 
         self.logger.info('Elapsed total: %.2f seconds', time.time() - keep_total_time)

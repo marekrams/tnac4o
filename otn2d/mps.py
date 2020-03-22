@@ -157,7 +157,7 @@ class MPS:
         phi.dtype = self.dtype
         return phi
 
-    def compress_mps(self, Dmax=np.inf, tolS=None, tolV=None, max_sweeps=4, verbose=False):
+    def compress_mps(self, Dmax=np.inf, tolS=None, tolV=None, max_sweeps=4, graduate_truncation=True, verbose=False):
         """
         Truncate MPS. Initialise with svd and then uses variational compression.
 
@@ -166,6 +166,7 @@ class MPS:
             tolS (float): truncate smaller singular values during svd.
             tolV (float): condition for overlap convergence during one sweep.
             max_sweeps (int): maximal number of sweeps of variational compression.
+            graduate_truncation: performs 2 more rounds of SVD truncation decreesing bond dimension gradually, mixing it with variational sweep.
             verbose: to display convergence statistics.
 
         Returns:
@@ -174,9 +175,10 @@ class MPS:
         self.canonise_right()
         phi = self.copy()
         self.discarded = [0] * (self.L+1)
-        # self.canonise_left(compress=True, Dmax  = Dmax*4, tol = tolS/10)
-        # overlap = self.variational_compress(phi, tol = tolV, max_sweeps = 1, verbose = verbose)
-        # self.canonise_right(compress=True, Dmax = Dmax*2, tol = tolS/2)
+        if graduate_truncation:
+            self.canonise_left(compress=True, Dmax=Dmax*4, tol=tolS/10)
+            overlap = self.variational_compress(phi, tol=tolV, max_sweeps=1, verbose=verbose)
+            self.canonise_right(compress=True, Dmax=Dmax*2, tol=tolS/2)
         self.canonise_left(compress=True, Dmax=Dmax, tol=tolS)
         overlap = self.variational_compress(phi, tol=tolV, max_sweeps=max_sweeps, verbose=verbose)
         return overlap

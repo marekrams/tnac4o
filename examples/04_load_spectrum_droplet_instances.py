@@ -82,7 +82,7 @@ def main():
     Eng = otn2d.energy_Jij(J, bit_strings)
     error = max(abs(ins.energy - Eng))
 
-    print('Consistency of different ways to calcule energies.')
+    print('Consistency of different ways to calculate energies.')
     print('For ee = 2 or 3 expected difference is ~1e-6 due to applied noise.')
     print('Difference = ', error)
 

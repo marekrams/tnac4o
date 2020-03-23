@@ -21,7 +21,7 @@ def load_Jij(file_name):
     Loads couplings of the Ising model from a file.
 
     Args:
-        file_name (str): a path to file with coupling written in the format, i j :math:`J_{ij}`.
+        file_name (str): a path to file with coupling written in the format, :math:`i~~j~~J_{ij}`.
 
     Returns:
         a list of Jij couplings.
@@ -32,33 +32,33 @@ def load_Jij(file_name):
 
 
 def minus_Jij(J):
-    """
-    Change sign of all couplings Jij -> -Jij.
+    r"""
+    Change sign of all couplings :math:`J_{ij} \rightarrow -J_{ij}`.
     """
     return [[l[0], l[1], -l[2]] for l in J]
 
 
 def Jij_f2p(J):
-    """
-    Change 1-base indexig to 0-base indexing in a list of Jij.
+    r"""
+    Change 1-base indexig to 0-base indexing in a list of :math:`J_{ij}`.
     """
     return [[l[0]-1, l[1]-1, l[2]] for l in J]
 
 
 def Jij_p2f(J):
-    """
-    Change 0-base indexig to 1-base indexing in a list of Jij.
+    r"""
+    Change 0-base indexig to 1-base indexing in a list of :math:`J_{ij}`.
     """
     return [[l[0]+1, l[1]+1, l[2]] for l in J]
 
 
 def energy_Jij(J, states):
-    """
+    r"""
     Calculates energies from bit_strings for Ising model.
 
     Args:
         J (list): list of couplings
-        states (nparray): 1 (spin up), 0 (spin down)
+        states (nparray): 1 (spin up :math:`s_i=+1`), 0 (spin down :math:`s_i=-1`)
 
     Returns:
         Energies for all states.
@@ -102,8 +102,12 @@ def load(file_name):
     ins.states = d.item().get('states')
     ins.discarded_probability = d.item().get('discarded_probability')
     ins.negative_probability = d.item().get('negative_probability')
-    ins.ind0 = d.item().get('ind')
-    ins.adj = np.zeros((0, 0))
+    if mode == 'Ising':
+        ins.ind0 = d.item().get('ind')
+        ins.adj = np.zeros((0, 0))
+    elif mode == 'RMF':
+        ins.ind0 = []
+        ins.adj = []
     try:
         ins.excitations_encoding = d.item().get('excitations_encoding')
         ins.d = d.item().get('d')
@@ -115,6 +119,7 @@ def load(file_name):
                 ins.adj = d.item().get('adj')
             else:
                 ins.adj = []
+
             ins._reset_adj(J=ins.adj, Nx=ins.Nx, Ny=ins.Ny, ind=ins.ind0)
     except TypeError:
         pass
@@ -122,12 +127,12 @@ def load(file_name):
 
 
 def load_openGM(fname, Nx, Ny):
-    """
+    r"""
     Loads some factored graphs written in openGM format. Assumes rectangular lattice.
 
     Args:
         file_name (str): a path to file with factor graph in openGM format.
-        Nx, Ny: it is assumed that graph if forming an Nx x Ny lattice with
+        ints Nx, Ny: it is assumed that graph if forming an :math:`N_x \times N_y` lattice with
             nearest-neighbour interactions only.
 
     Returns:
@@ -137,7 +142,7 @@ def load_openGM(fname, Nx, Ny):
         keys = list(hf.keys())
         data = hf[keys[0]]
         H = list(data['header'])
-        _, _, L, n_factors, _, _, n_functions, _ = H
+        #_, _, L, n_factors, _, _, n_functions, _ = H
         F = np.array(data['factors'], dtype=int)
         J = np.array(data['function-id-16000/indices'], dtype=int)
         V = np.array(data['function-id-16000/values'], dtype=float)
@@ -156,13 +161,13 @@ def load_openGM(fname, Nx, Ny):
             n = n + [ny, nx]
         if len(n) == 4:
             if abs(n[0]-n[2])+abs(n[1]-n[3]) != 1:
-                Exception('not nearest neighbour')
+                Exception('Not nearest neighbour')
         if len(n) == 2:
             if (n[0] >= Ny) or (n[1] >= Nx):
-                Exception('wrong size')
+                Exception('Wrong size')
         factors[tuple(n)] = f1
         if z1 != 0:
-            Exception('something wrong with expected convention.')
+            Exception('Something wrong with the expected convention.')
 
     J = list(J[::-1])
     functions, ii, lower = {}, -1, 0
@@ -189,7 +194,7 @@ def energy_fg(J, states):
     Calculates cost function for bit_string for RMF.
 
     Args:
-        J (list): list of couplings
+        J (dict): dictionary encoding the cost function as factored graph on 2d rectangular lattice.
         states (nparray): configurations
 
     Returns:
@@ -216,8 +221,8 @@ class otn2d:
     Args:
         mode (str):
             ``'Ising'`` assumes Ising-type representation of the problem
-            with the cost function :math:`E(s) = \\sum_{i<j} J_{ij} s_i s_j + \\sum_i J_{ii} s_i`.
-            The couplings :math:`J_{ij}` form a 2d rectangular :math:`N_x \\times N_y` lattice of elementary cells with :math:`N_c` spins in each cell.
+            with the cost function :math:`E(s) = \sum_{i<j} J_{ij} s_i s_j + \sum_i J_{ii} s_i`.
+            The couplings :math:`J_{ij}` form a 2d rectangular :math:`N_x \times N_y` lattice of elementary cells with :math:`N_c` spins in each cell.
             Allowed interactions include any couplings within clusters and couplings between spins in nearest-neighbour clusters.
 
             Spin index :math:`i = k N_x N_c+l N_c+m`, with :math:`k=0,1,\ldots,N_y-1`, :math:`l=0,1,\ldots,N_x-1`, :math:`m=0,1,\ldots,N_c-1` (zero-based indexing is used).
@@ -228,7 +233,7 @@ class otn2d:
             They are not taken into account during the search.
 
             ``'RMF'`` assumes a Random Markov Field type model on a 2d rectangular (Nx x Ny) lattice
-            with cost function :math:`E = \\sum_{\\langle i,j \\rangle} E(s_i, s_j) + \\sum_i E(s_i)` and nearest-neighbour interactions only.
+            with cost function :math:`E = \sum_{\langle i,j \rangle} E(s_i, s_j) + \sum_i E(s_i)` and nearest-neighbour interactions only.
 
         ints Nx, Ny, Nc : defining lattice.
         beta (float): sets the inverse temperature used during the search.
@@ -236,7 +241,8 @@ class otn2d:
             but making tensor network contraction numerically less stable.
         J (others): couplings.
             For mode ``'Ising'``, it should be a list of :math:`[i, j, J_{ij}]`.
-            For mode ``'RMF'``, it should be a namedtuple [fun fac N Nx Ny]
+            For mode ``'RMF'``, it should be a dictionary with fields\:
+            fun (functions),fac (where functions are applied),N (np array of sizes of local variables), Nx, Ny.
 
     Examples:
         ins = otn2d.otn2d(mode='Ising', Nx=16, Ny=16, Nc=8, beta=beta, J=J) would initialise a model including
@@ -278,10 +284,12 @@ class otn2d:
             elif self.Nc <= 9:
                 self.indtype = np.int16 
             else:
-                raise('Single cluster is too large.')
+                raise('Single cluster is too large (bound can be removed in otn2d.__init__).')
         elif self.mode == 'RMF':
             self.Nc = 1
             self.indtype = np.int8
+            self.ind = []
+
         self.L = Nx*Ny*Nc
         self.order = np.arange(self.Nx*self.Ny)  # order of clusters
         self.order_i = np.arange(self.Nx*self.Ny)  # inverse order of clusters
@@ -311,6 +319,9 @@ class otn2d:
             elif self.mode == 'RMF':
                 self.J = J
                 self.N = J['N']
+                self.ind = []
+                self.ind0 = []
+                self.J0 = []
             self._divide_couplings()
 
     def save(self, file_name):
@@ -333,7 +344,8 @@ class otn2d:
         d['Ny'] = self.Ny_model
         d['Nc'] = self.Nc
         d['beta'] = self.beta
-        d['ind'] = self.ind0
+        if self.mode == 'Ising':
+            d['ind'] = self.ind0
         try:
             d['excitations_encoding'] = self.excitations_encoding
             d['d'] = self.d
@@ -382,10 +394,10 @@ class otn2d:
             print('No solution to show.')
 
     def binary_states(self, number=-1):
-        """
+        r"""
         Returns states in binary form.
 
-        1 - spin up (si=+1); 0 - spin down (si=-1); 2 - inactive spin
+        1 - spin up :math:`(s_i=+1)`; 0 - spin down :math:`(s_i=-1)`; 2 - inactive spin
 
         Args:
             number (int): Maximal number of states to be returned. -1 returns all states.
@@ -487,13 +499,13 @@ class otn2d:
             if not beta_cond:
                 beta_cond = [self.beta * 2.**(nn-steps) for nn in range(steps)]
             if not Dmax_cond:
-                Dmax_cond = [8] * len(beta_cond)  # default D for conditioning is 8
+                Dmax_cond = [10] * len(beta_cond)  # default D for conditioning is 10
             main_beta = self.beta
             for nn in range(len(beta_cond)):
                 self.beta = beta_cond[nn]
                 self.logger.info('Preconditioning with beta = %.2f', self.beta)
                 keep_time = time.time()
-                self._update_conditioning(direction='lr', Dmax=Dmax_cond[nn], graduate_truncation=graduate_truncation, tolS=tolS, tolV=tolV, max_sweeps=max_sweeps, max_scale=max_scale)
+                #self._update_conditioning(direction='lr', Dmax=Dmax_cond[nn], graduate_truncation=graduate_truncation, tolS=tolS, tolV=tolV, max_sweeps=max_sweeps, max_scale=max_scale)
                 self._update_conditioning(direction='ud', Dmax=Dmax_cond[nn], graduate_truncation=graduate_truncation, tolS=tolS, tolV=tolV, max_sweeps=max_sweeps, max_scale=max_scale)
                 self.logger.info('Elapsed: %.2f seconds', time.time() - keep_time)
             self.beta = main_beta
@@ -1898,7 +1910,7 @@ class otn2d:
 
                 for nx in range(self.Nx-1, -1, -1):
                     env = self.rhoB[ny].bond_env_mix(self.rhoT[ny], nx)
-                    _ , scale = scipy.linalg.matrix_balance(env, permute = False, separate = True)
+                    _ , scale = scipy.linalg.matrix_balance(env, permute=False, separate=True)
                     scale = np.minimum(np.maximum(scale[0], 1/max_scale), max_scale)
 
                     o1 = self.rhoB[ny].expectation_mix(self.rhoT[ny], nx)
@@ -1935,7 +1947,7 @@ class otn2d:
 
                 for nx in range(self.Nx):
                     env = self.rhoB[ny].bond_env_mix(self.rhoT[ny], nx)
-                    _ , scale = scipy.linalg.matrix_balance(env, permute = False, separate = True)
+                    _ , scale = scipy.linalg.matrix_balance(env, permute=False, separate=True)
                     scale = np.minimum(np.maximum(scale[0], 1/max_scale), max_scale)
 
                     o1 = self.rhoB[ny].expectation_mix(self.rhoT[ny], nx)

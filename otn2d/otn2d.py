@@ -486,7 +486,8 @@ class otn2d:
 
         Args:
             mode (str): Type of heuristics used. For now, only 'balancing' trick is implemented.
-            steps (int): number of smaller betas used (if they are not provided explicitly).
+            steps (int): number of default smaller betas used (if they are not provided explicitly).
+            Default are betas decrising by a factor of two from the target one, with bond dimension 10.
             beta_cond (list of floats): beta's used to search for preconditioning.
             Dmax_cond (list of ints): corresponding maximal bond dimensions used in boundary MPS.
             max_scale (float): bound on local rescaling used in one step.

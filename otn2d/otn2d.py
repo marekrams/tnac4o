@@ -189,7 +189,7 @@ def load_openGM(fname, Nx, Ny):
     return J
 
 
-def energy_fg(J, states):
+def energy_RMF(J, states):
     """
     Calculates cost function for bit_string for RMF.
 
@@ -223,11 +223,11 @@ class otn2d:
             ``'Ising'`` assumes Ising-type representation of the problem
             with the cost function :math:`E(s) = \sum_{i<j} J_{ij} s_i s_j + \sum_i J_{ii} s_i`.
             The couplings :math:`J_{ij}` form a 2d rectangular :math:`N_x \times N_y` lattice of elementary cells with :math:`N_c` spins in each cell.
-            Allowed interactions include any couplings within clusters and couplings between spins in nearest-neighbour clusters.
+            Allowed interactions include any couplings within clusters and couplings between spins in nearest-neighbor clusters.
 
             Spin index :math:`i = k N_x N_c+l N_c+m`, with :math:`k=0,1,\ldots,N_y-1`, :math:`l=0,1,\ldots,N_x-1`, :math:`m=0,1,\ldots,N_c-1` (zero-based indexing is used).
-            PEPS tensor corresponding to given cluster is generated explicitly, hence :math:`N_c` cannot be too large. 
-            The exact velue depends on :math:`N_c` itself, as well as the number of interacting spins between clusters.
+            PEPS tensor corresponding to a given cluster is generated explicitly; hence:math:`N_c` cannot be too large. 
+            The exact value depends on :math:`N_c` itself, as well as the number of interacting spins between clusters.
 
             Spins which are not active (with all :math:`J_{ij}` equal 0), are automatically recognized.  
             They are not taken into account during the search.
@@ -242,7 +242,8 @@ class otn2d:
         J (others): couplings.
             For mode ``'Ising'``, it should be a list of :math:`[i, j, J_{ij}]`.
             For mode ``'RMF'``, it should be a dictionary with fields\:
-            fun (functions),fac (where functions are applied),N (np array of sizes of local variables), Nx, Ny.
+            'fun' (a dictionary of possible matrices :math:`E(s_i, s_j)` and :math:`E(s_i)` ), 'fac' (a dictionary with indices (n1y,n1x,n2y,n2x) or
+            (ny,nx) matching the interacting nearest-neighbour lattice sites with respective elements of 'fun'. 'N' is an :math:`N_y \times N_x` nparray of inf with variable ranges.
 
     Examples:
         ins = otn2d.otn2d(mode='Ising', Nx=16, Ny=16, Nc=8, beta=beta, J=J) would initialise a model including
@@ -252,7 +253,7 @@ class otn2d:
         Obtained results are stored as instance attributes (see below).
 
     Attributes:
-        energy: energy(ies) of states obtained from searching or sampling.
+        energy: energy(-ies) of states obtained from searching or sampling.
         probability: log2 of the most probable state obtained during the search.
         degeneracy: degeneracy of the ground state.
         states: states of clusters from searching or sampling.
@@ -284,7 +285,7 @@ class otn2d:
             elif self.Nc <= 9:
                 self.indtype = np.int16 
             else:
-                raise('Single cluster is too large (bound can be removed in otn2d.__init__).')
+                raise('Single cluster is too large (this bound can be removed in otn2d.__init__).')
         elif self.mode == 'RMF':
             self.Nc = 1
             self.indtype = np.int8
@@ -317,8 +318,8 @@ class otn2d:
                         self.ind0[ny][nx] = ind[np.nonzero(Jsum > 1e-12)]
                         self.active += len(self.ind0[ny][nx])
             elif self.mode == 'RMF':
-                self.J = J
-                self.N = J['N']
+                self.J = J.copy()
+                self.N = J['N'].copy()
                 self.ind = []
                 self.ind0 = []
                 self.J0 = []
@@ -359,11 +360,14 @@ class otn2d:
             pass
         np.save(file_name, d)
 
-    # def plot(self, name='', ind=0, show=True):
-    #     if ind < len(self.states):
-    #         plt.matshow(self.states[ind, :].reshape(self.Ny, self.Nx).T)
-    #         if show:
-    #             plt.show()
+    def plot(self, name='', ind=0, show=True):
+        """
+        Plot obtained solution.
+        """
+        if ind < len(self.states):
+            plt.matshow(self.states[ind, :].reshape(self.Ny, self.Nx).T)
+            if show:
+                plt.show()
     #         plt.savefig(name+"_st="+str(ind)+".png")
     #     return 0
 
@@ -480,7 +484,7 @@ class otn2d:
                      max_scale=1024,
                      graduate_truncation=False,
                      tolS=1e-16,
-                     tolV=1e-10, max_sweeps=10):
+                     tolV=1e-10, max_sweeps=20):
         """
         Apply the preconditioning procedure.
 
@@ -500,7 +504,7 @@ class otn2d:
             if not beta_cond:
                 beta_cond = [self.beta * 2.**(nn-steps) for nn in range(steps)]
             if not Dmax_cond:
-                Dmax_cond = [10] * len(beta_cond)  # default D for conditioning is 10
+                Dmax_cond = [8] * len(beta_cond)  # default D for conditioning is 8
             main_beta = self.beta
             for nn in range(len(beta_cond)):
                 self.beta = beta_cond[nn]
@@ -515,7 +519,7 @@ class otn2d:
                             min_dEng=1e-12,
                             graduate_truncation=True,
                             Dmax=32, tolS=1e-16,
-                            tolV=1e-10, max_sweeps=10):
+                            tolV=1e-10, max_sweeps=20):
         """
         Searches for the most probable state (ground state) on a quasi-2d graph.
 
@@ -684,7 +688,7 @@ class otn2d:
     def gibbs_sampling(self, M=2**10,
                        graduate_truncation=True,
                        Dmax=32, tolS=1e-15,
-                       tolV=1e-10, max_sweeps=10):
+                       tolV=1e-10, max_sweeps=20):
         """
         Samples from the Boltzman distribution on a quasi-2d graph.
 
@@ -786,7 +790,7 @@ class otn2d:
                                    min_dEng=1e-12,
                                    graduate_truncation=True,
                                    Dmax=32, tolS=1e-16,
-                                   tolV=1e-10, max_sweeps=10):
+                                   tolV=1e-10, max_sweeps=20):
         """
         Searches for low-energy spectrum on a quasi-2d graph.
 
@@ -856,7 +860,7 @@ class otn2d:
                                        min_dEng=1e-12,
                                        graduate_truncation=True,
                                        Dmax=32, tolS=1e-16,
-                                       tolV=1e-10, max_sweeps=10):
+                                       tolV=1e-10, max_sweeps=20):
         """
         Searching for most probable states on quasi-2d graph.
         Merge and keeps track of excitation.
@@ -1059,7 +1063,7 @@ class otn2d:
                                        min_dEng=1e-12,
                                        graduate_truncation=True,
                                        Dmax=32, tolS=1e-16,
-                                       tolV=1e-10, max_sweeps=10):
+                                       tolV=1e-10, max_sweeps=20):
         """
         Searching for most probable states on quasi-2d graph.
         Merge and keeps track of excitation.
@@ -1238,7 +1242,7 @@ class otn2d:
                                        min_dEng=1e-12,
                                        graduate_truncation=True,
                                        Dmax=32, tolS=1e-16,
-                                       tolV=1e-10, max_sweeps=10):
+                                       tolV=1e-10, max_sweeps=20):
         """
         Searching for most probable states on quasi-2d graph.
         Merge and keeps track of excitation.
@@ -1758,7 +1762,7 @@ class otn2d:
 
         return Es_full
 
-    def _setup_rhoT(self, graduate_truncation=True, Dmax=32, tolS=1e-16, tolV=1e-10, max_sweeps=10):
+    def _setup_rhoT(self, graduate_truncation=True, Dmax=32, tolS=1e-16, tolV=1e-10, max_sweeps=20):
         """
         Creates environment for layers of peps; from top.
         """
@@ -1778,7 +1782,7 @@ class otn2d:
             self.rhoT_discarded[ny] = max(self.rhoT[ny].discarded)
             #self.rhoT[ny].normC = 1.0
 
-    def _setup_rhoB(self, graduate_truncation=True, Dmax=32, tolS=1e-16, tolV=1e-10, max_sweeps=10):
+    def _setup_rhoB(self, graduate_truncation=True, Dmax=32, tolS=1e-16, tolV=1e-10, max_sweeps=20):
         """
         Creates environment for layers of peps; from bottom.
         """
@@ -1798,7 +1802,7 @@ class otn2d:
             self.rhoB_discarded[ny+1] = max(self.rhoB[ny+1].discarded)
             #self.rhoB[ny+1].normC = 1.0
 
-    def _setup_rhoL(self, graduate_truncation=True, Dmax=32, tolS=1e-16, tolV=1e-10, max_sweeps=10):
+    def _setup_rhoL(self, graduate_truncation=True, Dmax=32, tolS=1e-16, tolV=1e-10, max_sweeps=20):
         """
         Creates environment for layers of peps; from left.
         """
@@ -1819,7 +1823,7 @@ class otn2d:
             self.rhoL_discarded[nx+1] = max(self.rhoL[nx+1].discarded)
             #self.rhoL[nx+1].normC = 1.0
 
-    def _setup_rhoR(self, graduate_truncation=True, Dmax=32, tolS=1e-16, tolV=1e-10, max_sweeps=10):
+    def _setup_rhoR(self, graduate_truncation=True, Dmax=32, tolS=1e-16, tolV=1e-10, max_sweeps=20):
         """
         Creates environment for layers of peps; from right.
         """

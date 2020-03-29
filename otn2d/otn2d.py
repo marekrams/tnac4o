@@ -540,7 +540,7 @@ class otn2d:
         Returns:
             The lowest energy found.
         """
-
+        log2e = np.log2(np.exp(1))
         keep_total_time, keep_time = time.time(), time.time()
         # Prepare environments for layers from bottom
         self.logger.info('Searching ground state with beta = %.2f', self.beta)
@@ -584,72 +584,64 @@ class otn2d:
                     newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]], self.rhoT[ny+1].A[nx], RRl[self.Nx-nx-1][tind[nx+2:]] )
 
                 newprob = np.log2(newprob)
-                newprob += prob[:, np.newaxis]  # use conditional probability to calculate probability of partial configuration
-                newprob = np.reshape(newprob, cons_states*block_states)
+                # use conditional probability to calculate probability of partial configuration
+                newprob += prob[:, np.newaxis]
+                prob = np.reshape(newprob, cons_states*block_states)
+                minprob = np.min(minprob)
+                order = np.arange(prob.size)
 
-                minprob, maxprob = np.min(minprob), np.max(newprob)
+                # cutoff on which relative probabilities are kept
+                if relative_P_cutoff > 0:
+                    cutoff = np.max(prob) + np.log2(relative_P_cutoff)
+                    keep = max((prob > cutoff).sum(), 1)
+                    if keep < prob.size:
+                        order = prob.argpartition(-keep-1)
+                        pd_max = max(pd_max, prob[order[-keep-1]])
+                        order = order[-keep:]
+                        prob = prob[order]  # keep largest probabilities
 
-                cutoff = maxprob + np.log2(relative_P_cutoff)
-                order = np.arange(newprob.size)
-
-                # cutoff on which probabilities are kept
-                keep = max((newprob[order] > cutoff).sum(), 1)
-                if keep < order.size:
-                    or2 = newprob[order].argpartition(-keep-1)
-                    pd_max = max(pd_max, newprob[order[or2[-keep-1]]])
-                    order = order[or2[-keep:]]
-                    newprob = newprob[order]  # keep largest probabilities
-
-                keep_more = 4
-                if newprob.size > keep_more*M:  # looks for max_state largest probabilities
-                    or2 = newprob.argpartition(-keep_more*M-1)
-                    pd_max = max(pd_max, newprob[or2[-keep_more*M-1]])
-                    order = order[or2[-keep_more*M::]]
-                    newprob = newprob[or2[-keep_more*M::]]
-
-                prob = newprob  # keep largest probabilities
                 # inds = which previous states
                 # indc = and state at the considered cluster (site)
                 inds, indc = order // block_states, np.mod(order, block_states)
                 states = states[inds]
                 states[:, ny*self.Nx+nx] = indc[:]
                 vind = vind[inds]
+                deg = deg[inds]
                 # update corresponding virtual indices
                 vind[:, nx] = self._ind_bond_down(indc, ny, nx)
                 vind[:, nx+1] = self._ind_bond_right(indc, ny, nx)
                 Eng = Eng[inds]
                 Eng += self._update_Eng(states, ny, nx)
-                deg = deg[inds]
 
-                # merge configurations where vind is the same
-                seen = {}
-                seenind = {}
+                # merges matching configurations
+                unique_vind, unique_first, unique_inv = np.unique(vind, return_index=True, return_inverse=True, axis=0)
+                unique_number = len(unique_vind)
 
-                for kk in range(order.size):
-                    tind = tuple(vind[kk])
-                    if tind in seen:
-                        if Eng[kk] + min_dEng < Eng[seen[tind]]:
-                            del seenind[seen[tind]]
-                            seen[tind] = kk
-                            seenind[kk] = [kk]
-                        elif abs(Eng[kk] - Eng[seen[tind]]) < min_dEng:
-                            seenind[seen[tind]].append(kk)
-                    else:
-                        seen[tind] = kk
-                        seenind[kk] = [kk]
+                Engn = np.zeros(unique_number)
+                degn = np.zeros(unique_number, dtype=int)
+                probn = np.zeros(unique_number)
+                statesn = np.zeros((unique_number, self.Nx*self.Ny), dtype=self.indtype)
 
-                uni = np.fromiter(seen.values(), dtype=np.int)
-                vind = vind[uni]
-                states = states[uni]
-                Eng = Eng[uni]
-                degn, probn = np.zeros(uni.size, dtype=int), np.zeros(uni.size)
-                for kk in range(uni.size):
-                    ind = np.array(seenind[uni[kk]], dtype=int)
-                    probn[kk] = np.median(prob[ind])
-                    degn[kk] = np.sum(deg[ind])
-                prob, deg = probn, degn
+                for kk in range(unique_number):
+                    ind = (unique_inv == kk).nonzero()[0]
+                    Eng_kk = Eng[ind]
+                    ind_min = np.argmin(Eng_kk)
+                    Engn[kk] = Eng_kk[ind_min]
+                    statesn[kk] = states[ind[ind_min]]
+                    # count degeneracy
+                    ind_deg = (Eng_kk - Engn[kk] <= min_dEng)
+                    degn[kk] = np.sum(deg[ind[ind_deg]])
+                    # for stability uses median of degenerated states
+                    # probn[kk] = np.median(prob[ind[ind_deg]])
+                    # for stability uses median of probabilities of all the merged states
+                    probn[kk] = np.median(prob[ind] + (self.beta*log2e)*(Eng_kk - Engn[kk]))
+                vind = unique_vind
+                states = statesn
+                Eng = Engn
+                prob = probn
+                deg = degn
 
-                # looks for max_state largest probabilities
+                # truncates based on cutoff probability and max_states to keep
                 if prob.size > M:
                     order = prob.argpartition(-M-1)
                     pd_max = max(pd_max, prob[order[-M-1]])

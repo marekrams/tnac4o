@@ -14,7 +14,7 @@ import scipy.linalg
 import time
 import h5py
 import matplotlib.pyplot as plt
-
+from itertools import groupby
 
 def load_Jij(file_name):
     """
@@ -614,32 +614,41 @@ class otn2d:
                 Eng += self._update_Eng(states, ny, nx)
 
                 # merges matching configurations
-                unique_vind, unique_first, unique_inv = np.unique(vind, return_index=True, return_inverse=True, axis=0)
-                unique_number = len(unique_vind)
+                unique_vind, unique_inv = np.unique(vind, return_inverse=True, axis=0)
+                order = unique_inv.argsort()
+                unique_inv = unique_inv[order]
+                sizes = [len(list(g)) for _, g in groupby(unique_inv)]
+                lsizes = len(sizes)
+                indn = np.zeros(lsizes, dtype=int)
+                degn = np.zeros(lsizes, dtype=int)
+                # Engn = np.zeros(lsizes)
+                probn = np.zeros(lsizes)
+                # statesn = np.zeros((lsizes, self.Nx*self.Ny), dtype=self.indtype)
 
-                Engn = np.zeros(unique_number)
-                degn = np.zeros(unique_number, dtype=int)
-                probn = np.zeros(unique_number)
-                statesn = np.zeros((unique_number, self.Nx*self.Ny), dtype=self.indtype)
-
-                for kk in range(unique_number):
-                    ind = (unique_inv == kk).nonzero()[0]
+                lower = 0
+                for kk, sl in enumerate(sizes):
+                    upper = lower+sl
+                    ind = order[lower:upper]
                     Eng_kk = Eng[ind]
                     ind_min = np.argmin(Eng_kk)
-                    Engn[kk] = Eng_kk[ind_min]
-                    statesn[kk] = states[ind[ind_min]]
+                    Emin = Eng_kk[ind_min]
+                    indn[kk] = ind[ind_min]
                     # count degeneracy
-                    ind_deg = (Eng_kk - Engn[kk] <= min_dEng)
-                    degn[kk] = np.sum(deg[ind[ind_deg]])
-                    # for stability uses median of degenerated states
-                    # probn[kk] = np.median(prob[ind[ind_deg]])
-                    # for stability uses median of probabilities of all the merged states
-                    probn[kk] = np.median(prob[ind] + (self.beta*log2e)*(Eng_kk - Engn[kk]))
+                    ind_deg = ind[(Eng_kk - Emin <= min_dEng)]
+                    if len(ind_deg) > 1:
+                        degn[kk] = sum(deg[ind_deg])
+                        # for stability uses mean of degenerated states
+                        probn[kk] = np.mean(prob[ind_deg])
+                    else:
+                        degn[kk] = deg[ind_deg]
+                        probn[kk] = prob[ind_deg]
+                    lower = upper
+
                 vind = unique_vind
-                states = statesn
-                Eng = Engn
                 prob = probn
                 deg = degn
+                states = states[indn]
+                Eng = Eng[indn]
 
                 # truncates based on cutoff probability and max_states to keep
                 if prob.size > M:

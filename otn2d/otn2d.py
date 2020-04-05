@@ -614,15 +614,15 @@ class otn2d:
                 Eng += self._update_Eng(states, ny, nx)
 
                 # merges matching configurations
-                unique_vind, unique_inv = np.unique(vind, return_inverse=True, axis=0)
+                vindn, unique_inv = np.unique(vind, return_inverse=True, axis=0)
                 order = unique_inv.argsort()
                 unique_inv = unique_inv[order]
                 sizes = [len(list(g)) for _, g in groupby(unique_inv)]
                 lsizes = len(sizes)
                 indn = np.zeros(lsizes, dtype=int)
                 degn = np.zeros(lsizes, dtype=int)
-                # Engn = np.zeros(lsizes)
                 probn = np.zeros(lsizes)
+                # Engn = np.zeros(lsizes)
                 # statesn = np.zeros((lsizes, self.Nx*self.Ny), dtype=self.indtype)
 
                 lower = 0
@@ -644,7 +644,7 @@ class otn2d:
                         probn[kk] = prob[ind_deg]
                     lower = upper
 
-                vind = unique_vind
+                vind = vindn
                 prob = probn
                 deg = degn
                 states = states[indn]
@@ -903,86 +903,96 @@ class otn2d:
                     newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]], self.rhoT[ny+1].A[nx], RRl[self.Nx-nx-1][tind[nx+2:]])
 
                 newprob = np.log2(newprob)
-
+                # use conditional probability to calculate probability of partial configuration
                 newprob += prob[:, np.newaxis]  # use conditional probability to calculate probability of partial configuration
-                newprob = np.reshape(newprob, cons_states*block_states)
-                minprob, maxprob = np.min(minprob), np.max(newprob)
-                cutoff = maxprob + np.log2(relative_P_cutoff)
+                prob = np.reshape(newprob, cons_states*block_states)
+                minprob = np.min(minprob)
 
-                order = np.arange(newprob.size)
+                # cutoff on which relative probabilities are kept
+                if relative_P_cutoff > 0:
+                    cutoff = np.max(prob) + np.log2(relative_P_cutoff)
+                    keep = max((prob > cutoff).sum(), 1)
+                    if keep < prob.size:
+                        order = prob.argpartition(-keep-1)
+                        pd_max = max(pd_max, prob[order[-keep-1]])
+                        order = order[-keep:]
+                        prob = prob[order]  # keep largest probabilities
+                else:
+                    order = np.arange(prob.size)
 
-                # cutoff on which probabilities are kept
-                keep = max((newprob[order] > cutoff).sum(), 1)
-                if keep < order.size:
-                    or2 = newprob[order].argpartition(-keep-1)
-                    pd_max = max(pd_max, newprob[order[or2[-keep-1]]])
-                    order = order[or2[-keep:]]
-                    newprob = newprob[order]  # keep largest probabilities
-
-                keep_more = 4
-                if newprob.size > keep_more*M:  # looks for max_state largest probabilities
-                    or2 = newprob.argpartition(-keep_more*M-1)
-                    pd_max = max(pd_max, newprob[or2[-keep_more*M-1]])
-                    order = order[or2[-keep_more*M::]]
-                    newprob = newprob[or2[-keep_more*M::]]
-
-                prob = newprob  # keep largest probabilities
                 # inds = which previous states
                 # indc = and state at the considered cluster (site)
                 inds, indc = order // block_states, np.mod(order, block_states)
                 states = states[inds]
                 states[:, ny*self.Nx+nx] = indc
                 vind = vind[inds]
+                deg = deg[inds]
                 # update corresponding virtual indices
                 vind[:, nx] = self._ind_bond_down(indc, ny, nx)
                 vind[:, nx+1] = self._ind_bond_right(indc, ny, nx)
                 Eng = Eng[inds]
                 Eng += self._update_Eng(states, ny, nx)
-                deg = deg[inds]
 
-                # merge configurations where vind is the same
-                seen = {}  # identify similar configurations
-                for kk in range(order.size):
-                    tind = tuple(vind[kk])
-                    if tind in seen:
-                        seen[tind].append((kk, Eng[kk], prob[kk]))
+                # merges matching configurations
+                vindn, unique_inv = np.unique(vind, return_inverse=True, axis=0)
+                order = unique_inv.argsort()
+                unique_inv = unique_inv[order]
+                sizes = [len(list(g)) for _, g in groupby(unique_inv)]
+                lsizes = len(sizes)
+                indn = np.zeros(lsizes, dtype=int)
+                degn = np.zeros(lsizes, dtype=int)
+                Engn = np.zeros(lsizes)
+                probn = np.zeros(lsizes)
+                statesn = np.zeros((lsizes, self.Nx*self.Ny), dtype=self.indtype)
+                
+                lower = 0
+                for kk, sl in enumerate(sizes):
+                    upper = lower+sl
+                    ind = order[lower:upper]
+                    lower = upper
+                    Eng_kk = Eng[ind]
+                    ind_min = np.argmin(Eng_kk)
+                    Engn[kk] = Eng_kk[ind_min]
+                    indn[kk] = ind[ind_min]
+                    statesn[kk] = states[ind[ind_min]]
+                    # count degeneracy
+                    ind_deg = ind[(Eng_kk - Engn[kk] <= min_dEng)]
+                    if len(ind_deg) > 1:
+                        degn[kk] = sum(deg[ind_deg])
+                        # for stability uses mean of degenerated states
+                        probn[kk] = np.mean(prob[ind_deg])
                     else:
-                        seen[tind] = [(kk, Eng[kk], prob[kk])]
+                        degn[kk] = deg[ind_deg]
+                        probn[kk] = prob[ind_deg]
 
-                lseen = len(seen)
-                uni = np.zeros(lseen, dtype=int)  # index of "unique" (main) configurations
-                probn = np.zeros(lseen)  # their probabilities
-                degn = np.zeros(lseen, dtype=int)  # their degeneracy
+                if probn.size > M:
+                    order_size = probn.argpartition(-M-1)
+                    pd_max = max(pd_max, probn[order_size[-M-1]])
+                    order_size = order_size[-M::]
+                else:    
+                    order_size = np.arange(probn.size)
+
+                cum_sizes = np.cumsum(sizes, dtype=int) 
                 el = []  # new list collecting all excitations (excitations list) of all branches
+                for kk in order_size:
+                    upper = cum_sizes[kk]
+                    lower = upper - sizes[kk]
+                    ind = order[lower:upper]
+                    Eng_kk = Eng[ind]
+                    prob_kk = prob[ind]
 
-                # ind  = indexing new main branches
-                for ind, confs in enumerate(seen.values()):  # merge configuration
-                    mEng = np.inf  # minimal Energy
-                    for ii, En, pr in confs:  # for given vind find min energy
-                        if En+min_dEng < mEng:
-                            ui = ii
-                            mEng = En
-                            cprob = [pr]
-                            cdeg = deg[ui]  # degeneracy of smallest energy
-                        elif np.abs(En - mEng) < min_dEng:
-                            cprob.append(pr)
-                            cdeg += deg[ii]
-                    probn[ind] = np.median(cprob)
-                    uni[ind] = ui
-                    degn[ind] = cdeg
-                    # new branch excitation list <- copy from old
-                    bel = self.el[inds[ui]][:]
-                    # add other merged branches as new excitations
-                    for ii, En, pr in confs:  # merge other excitations
-                        conf_dEng = En - mEng
-                        if (conf_dEng <= max_dEng) and (ii != ui):
+                    bel = self.el[inds[indn[kk]]][:]
+                    # add other merged branches as new excitations                    
+                    for ii, En, pr in zip(ind, Eng_kk, prob_kk):  # merge other excitations
+                        conf_dEng = En - Engn[kk]
+                        if (conf_dEng <= max_dEng) and (ii != indn[kk]):
                             # where the states differ
-                            dstate = np.bitwise_xor(states[ui], states[ii])
+                            dstate = np.bitwise_xor(statesn[kk], states[ii])
                             dpos = dstate.nonzero()[0]
                             dstate = dstate[dpos]
                             if (lim_hd <= 1) or (self._exc_hd(dstate) >= lim_hd):
                                 dfirst, dlast = dpos[0], self.Nx*ny+nx
-                                dP = pr-probn[ind]
+                                dP = pr-probn[kk]
                                 di = self._exc_add_to_d(dpos, dstate)  # dict index
                                 sel = []  # sub-excitations list
                                 # add sub-excitations
@@ -994,11 +1004,11 @@ class otn2d:
                                 bel.append(ne)
                     el.append(bel)  # creates new list of excitations
 
-                prob = probn
-                deg = degn
-                vind = vind[uni]
-                states = states[uni]
-                Eng = Eng[uni]
+                vind = vindn[order_size]
+                states = statesn[order_size]
+                prob = probn[order_size]
+                Eng = Engn[order_size]
+                deg = degn[order_size]
                 self.el = el
 
                 RLnew = {}  # update left environment
@@ -1076,8 +1086,8 @@ class otn2d:
         #  prepare environments for layers from bottom
         self.logger.info('Preprocesing ... ')
         self._setup_rhoT(graduate_truncation=graduate_truncation,
-                    Dmax=Dmax, tolS=tolS,
-                    tolV=tolV, max_sweeps=max_sweeps)
+                         Dmax=Dmax, tolS=tolS,
+                         tolV=tolV, max_sweeps=max_sweeps)
         self.logger.info('Elapsed: %.2f seconds', time.time() - keep_time)
 
         #  Initilise
@@ -1108,83 +1118,93 @@ class otn2d:
                     newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]], self.rhoT[ny+1].A[nx], RRl[self.Nx-nx-1][tind[nx+2:]])
 
                 newprob = np.log2(newprob)
-
+                # use conditional probability to calculate probability of partial configuration
                 newprob += prob[:, np.newaxis]  # use conditional probability to calculate probability of partial configuration
-                newprob = np.reshape(newprob, cons_states*block_states)
-                minprob, maxprob = np.min(minprob), np.max(newprob)
-                cutoff = maxprob + np.log2(relative_P_cutoff)
+                prob = np.reshape(newprob, cons_states*block_states)
+                minprob = np.min(minprob)
 
-                order = np.arange(newprob.size)
+                # cutoff on which relative probabilities are kept
+                if relative_P_cutoff > 0:
+                    cutoff = np.max(prob) + np.log2(relative_P_cutoff)
+                    keep = max((prob > cutoff).sum(), 1)
+                    if keep < prob.size:
+                        order = prob.argpartition(-keep-1)
+                        pd_max = max(pd_max, prob[order[-keep-1]])
+                        order = order[-keep:]
+                        prob = prob[order]  # keep largest probabilities
+                else:
+                    order = np.arange(prob.size)
 
-                # cutoff on which probabilities are kept
-                keep = max((newprob[order] > cutoff).sum(), 1)
-                if keep < order.size:
-                    or2 = newprob[order].argpartition(-keep-1)
-                    pd_max = max(pd_max, newprob[order[or2[-keep-1]]])
-                    order = order[or2[-keep:]]
-                    newprob = newprob[order]   ## keep largest probabilities
-
-                keep_more = 4
-                if newprob.size > keep_more*M:  ## looks for max_state largest probabilities
-                    or2 = newprob.argpartition(-keep_more*M-1)
-                    pd_max = max(pd_max, newprob[or2[-keep_more*M-1]])
-                    order = order[or2[-keep_more*M::]]
-                    newprob = newprob[or2[-keep_more*M::]]
-
-                prob = newprob  # keep largest probabilities
                 # inds = which previous states
                 # indc = and state at the considered cluster (site)
                 inds, indc = order // block_states, np.mod(order, block_states)
                 states = states[inds]
                 states[:, ny*self.Nx+nx] = indc
                 vind = vind[inds]
+                deg = deg[inds]
                 # update corresponding virtual indices
                 vind[:, nx] = self._ind_bond_down(indc, ny, nx)
                 vind[:, nx+1] = self._ind_bond_right(indc, ny, nx)
                 Eng = Eng[inds]
                 Eng += self._update_Eng(states, ny, nx)
-                deg = deg[inds]
 
-                # merge configurations where vind is the same
-                seen = {}  # identify similar configurations
-                for kk in range(order.size):
-                    tind = tuple(vind[kk])
-                    if tind in seen:
-                        seen[tind].append((kk, Eng[kk], prob[kk]))
+                # merges matching configurations
+                vindn, unique_inv = np.unique(vind, return_inverse=True, axis=0)
+                order = unique_inv.argsort()
+                unique_inv = unique_inv[order]
+                sizes = [len(list(g)) for _, g in groupby(unique_inv)]
+                lsizes = len(sizes)
+                indn = np.zeros(lsizes, dtype=int)
+                degn = np.zeros(lsizes, dtype=int)
+                Engn = np.zeros(lsizes)
+                probn = np.zeros(lsizes)
+                statesn = np.zeros((lsizes, self.Nx*self.Ny), dtype=self.indtype)
+                
+                lower = 0
+                for kk, sl in enumerate(sizes):
+                    upper = lower+sl
+                    ind = order[lower:upper]
+                    lower = upper
+                    Eng_kk = Eng[ind]
+                    ind_min = np.argmin(Eng_kk)
+                    Engn[kk] = Eng_kk[ind_min]
+                    indn[kk] = ind[ind_min]
+                    statesn[kk] = states[ind[ind_min]]
+                    # count degeneracy
+                    ind_deg = ind[(Eng_kk - Engn[kk] <= min_dEng)]
+                    if len(ind_deg) > 1:
+                        degn[kk] = sum(deg[ind_deg])
+                        # for stability uses mean of degenerated states
+                        probn[kk] = np.mean(prob[ind_deg])
                     else:
-                        seen[tind] = [(kk, Eng[kk], prob[kk])]
+                        degn[kk] = deg[ind_deg]
+                        probn[kk] = prob[ind_deg]
 
-                lseen = len(seen)
-                uni = np.zeros(lseen, dtype=int)  # index of "unique" (main) configurations
-                probn = np.zeros(lseen)  # their probabilities
-                degn = np.zeros(lseen, dtype=int)  # their degeneracy
+                if probn.size > M:
+                    order_size = probn.argpartition(-M-1)
+                    pd_max = max(pd_max, probn[order_size[-M-1]])
+                    order_size = order_size[-M::]
+                else:    
+                    order_size = np.arange(probn.size)
+
+                cum_sizes = np.cumsum(sizes, dtype=int) 
                 el = []  # new list collecting all excitations (excitations list) of all branches
+                for kk in order_size:
+                    upper = cum_sizes[kk]
+                    lower = upper - sizes[kk]
+                    ind = order[lower:upper]
+                    Eng_kk = Eng[ind]
+                    prob_kk = prob[ind]
 
-                # ind  = indexing new main branches
-                for ind, confs in enumerate(seen.values()):  # merge configuration
-                    mEng = np.inf  # minimal Energy
-                    for ii, En, pr in confs:  # for given vind find min energy
-                        if En+min_dEng < mEng:
-                            ui = ii
-                            mEng = En
-                            cprob = [pr]
-                            cdeg = deg[ui]  # degeneracy of smallest energy
-                        elif np.abs(En - mEng) < min_dEng:
-                            cprob.append(pr)
-                            cdeg += deg[ii]
-                    probn[ind] = np.median(cprob)
-                    uni[ind] = ui
-                    degn[ind] = cdeg
-                    # new branch excitation list <- copy from old
-                    bel = self.el[inds[ui]][:]
-                    # add other merged branches as new excitations (possible with subexcitations)
-                    for ii, En, pr in confs:
-                        conf_dEng = En - mEng
-                        if (conf_dEng <= max_dEng) and (ii != ui):  # if not the main branch and has small exc energy
-                            dstate = np.bitwise_xor(states[ui], states[ii])
+                    bel = self.el[inds[indn[kk]]][:]
+                    # add other merged branches as new excitations                    
+                    for ii, En, pr in zip(ind, Eng_kk, prob_kk):  # merge other excitations
+                        conf_dEng = En - Engn[kk]
+                        if (conf_dEng <= max_dEng) and (ii != indn[kk]):
+                            # where the states differ
+                            dstate = np.bitwise_xor(statesn[kk], states[ii])
                             dpos = dstate.nonzero()[0]
                             dstate = dstate[dpos]
-                            # if not elementary then discard it
                             if (lim_hd <= 1 or self._exc_hd(dstate) >= lim_hd) and self._exc_elementary((dpos, dstate)):
                                 di = self._exc_add_to_d(dpos, dstate)  # dict index
                                 sel = []  # sub-excitations list
@@ -1195,13 +1215,13 @@ class otn2d:
                                         # add subexc if its total energy is small enough and it depends on the new one
                                 ne = ((conf_dEng, di), tuple(sel))   # base to form new excitation [dict index, dE, subexc]
                                 bel.append(ne)
-                    el.append(bel)  # finish merging given branch
+                    el.append(bel)  # creates new list of excitations
 
-                prob = probn
-                deg = degn
-                vind = vind[uni]
-                states = states[uni]
-                Eng = Eng[uni]
+                vind = vindn[order_size]
+                states = statesn[order_size]
+                prob = probn[order_size]
+                Eng = Engn[order_size]
+                deg = degn[order_size]
                 self.el = el
 
                 RLnew = {}  # update left environment
@@ -1288,83 +1308,94 @@ class otn2d:
                     newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]], self.rhoT[ny+1].A[nx], RRl[self.Nx-nx-1][tind[nx+2:]] )
 
                 newprob = np.log2(newprob)
-
+                # use conditional probability to calculate probability of partial configuration
                 newprob += prob[:, np.newaxis]  # use conditional probability to calculate probability of partial configuration
-                newprob = np.reshape(newprob, cons_states*block_states)
-                minprob, maxprob = np.min(minprob), np.max(newprob)
-                cutoff = maxprob + np.log2(relative_P_cutoff)
+                prob = np.reshape(newprob, cons_states*block_states)
+                minprob = np.min(minprob)
 
-                order   = np.arange(newprob.size)
+                # cutoff on which relative probabilities are kept
+                if relative_P_cutoff > 0:
+                    cutoff = np.max(prob) + np.log2(relative_P_cutoff)
+                    keep = max((prob > cutoff).sum(), 1)
+                    if keep < prob.size:
+                        order = prob.argpartition(-keep-1)
+                        pd_max = max(pd_max, prob[order[-keep-1]])
+                        order = order[-keep:]
+                        prob = prob[order]  # keep largest probabilities
+                else:
+                    order = np.arange(prob.size)
 
-                keep = max((newprob[order] > cutoff).sum(), 1)
-                if keep < order.size:
-                    or2     =  newprob[order].argpartition(-keep-1)
-                    pd_max  =  max(pd_max, newprob[order[or2[-keep-1]]])
-                    order   =  order[or2[-keep:]]
-                    newprob =  newprob[order]   ## keep largest probabilities
-
-                keep_more = 4
-                if newprob.size > keep_more*M:  ## looks for max_state largest probabilities
-                    or2     =  newprob.argpartition(-keep_more*M-1)
-                    pd_max  =  max(pd_max, newprob[or2[-keep_more*M-1]])
-                    order   =  order[or2[-keep_more*M::]]
-                    newprob = newprob[or2[-keep_more*M::]]
-
-                prob = newprob ## keep largest probabilities
                 ## inds = which previous states
                 ## indc = and state at the considered cluster (site)
                 inds, indc = order // block_states, np.mod(order, block_states)
                 states = states[inds]
                 states[:, ny*self.Nx+nx] = indc
                 vind = vind[inds]
+                deg = deg[inds]
                 # update corresponding virtual indices
                 vind[:, nx] = self._ind_bond_down(indc, ny, nx)
                 vind[:, nx+1] = self._ind_bond_right(indc, ny, nx)
                 Eng = Eng[inds]
                 Eng += self._update_Eng(states, ny, nx)
-                deg = deg[inds]
 
-                # search for configurations where vind is the same:
-                seen = {}  # identify similar configurations
-                for kk in range(order.size):
-                    tind = tuple(vind[kk])
-                    if tind in seen:
-                        seen[tind].append([kk, Eng[kk], prob[kk]])
+                # merges matching configurations
+                vindn, unique_inv = np.unique(vind, return_inverse=True, axis=0)
+                order = unique_inv.argsort()
+                unique_inv = unique_inv[order]
+                sizes = [len(list(g)) for _, g in groupby(unique_inv)]
+                lsizes = len(sizes)
+                indn = np.zeros(lsizes, dtype=int)
+                degn = np.zeros(lsizes, dtype=int)
+                Engn = np.zeros(lsizes)
+                probn = np.zeros(lsizes)
+                statesn = np.zeros((lsizes, self.Nx*self.Ny), dtype=self.indtype)
+                
+                lower = 0
+                for kk, sl in enumerate(sizes):
+                    upper = lower+sl
+                    ind = order[lower:upper]
+                    lower = upper
+                    Eng_kk = Eng[ind]
+                    ind_min = np.argmin(Eng_kk)
+                    Engn[kk] = Eng_kk[ind_min]
+                    indn[kk] = ind[ind_min]
+                    statesn[kk] = states[ind[ind_min]]
+                    # count degeneracy
+                    ind_deg = ind[(Eng_kk - Engn[kk] <= min_dEng)]
+                    if len(ind_deg) > 1:
+                        degn[kk] = sum(deg[ind_deg])
+                        # for stability uses mean of degenerated states
+                        probn[kk] = np.mean(prob[ind_deg])
                     else:
-                        seen[tind] = [(kk, Eng[kk], prob[kk])]
+                        degn[kk] = deg[ind_deg]
+                        probn[kk] = prob[ind_deg]
 
-                lseen = len(seen)
-                uni = np.zeros(lseen, dtype = int)   ## index of "unique" (main) configurations
-                probn = np.zeros(lseen)                ## their probabilities
-                degn = np.zeros(lseen, dtype = int)   ## their degeneracy
+                if probn.size > M:
+                    order_size = probn.argpartition(-M-1)
+                    pd_max = max(pd_max, probn[order_size[-M-1]])
+                    order_size = order_size[-M::]
+                else:    
+                    order_size = np.arange(probn.size)
+
+                cum_sizes = np.cumsum(sizes, dtype=int) 
                 el = []  # new list collecting all excitations (excitations list) of all branches
+                for kk in order_size:
+                    upper = cum_sizes[kk]
+                    lower = upper - sizes[kk]
+                    ind = order[lower:upper]
+                    Eng_kk = Eng[ind]
+                    prob_kk = prob[ind]
 
-                # ind  = indexing new main branches
-                for ind, confs in enumerate(seen.values()):  # merge configuration
-                    mEng = np.inf  # minimal Energy
-                    for ii, En, pr in confs:  # for given vind find min energy
-                        if En+min_dEng < mEng:
-                            ui = ii
-                            mEng = En
-                            cprob = [pr]
-                            cdeg = deg[ui]  # degeneracy of smallest energy
-                        elif np.abs(En - mEng) < min_dEng:
-                            cprob.append(pr)
-                            cdeg += deg[ii]
-                    probn[ind] = np.median(cprob)
-                    uni[ind] = ui
-                    degn[ind] = cdeg
-                    # new branch excitation list <- copy from old
-                    bel  = self.el[inds[ui]][:]
+                    bel = self.el[inds[indn[kk]]][:]
                     new_bel = []
-                    # add other merged branches as new excitations (possible with subexcitations)
-                    for ii, En, pr in confs:
-                        conf_dEng = En - mEng
-                        if (conf_dEng <= max_dEng) and (ii != ui):  # if has small exc energy and is not the main branch
-                            dstate = np.bitwise_xor(states[ui], states[ii])  # find where the states differ (define excitation)
+                    # add other merged branches as new excitations                    
+                    for ii, En, pr in zip(ind, Eng_kk, prob_kk):  # merge other excitations
+                        conf_dEng = En - Engn[kk]
+                        if (conf_dEng <= max_dEng) and (ii != indn[kk]):
+                            # where the states differ
+                            dstate = np.bitwise_xor(statesn[kk], states[ii])
                             dpos = dstate.nonzero()[0]
                             dstate = dstate[dpos]
-
                             nsel = []  ## list of subexcitations of dstate overlaping with it
                             for sne in self.el[inds[ii]]:  # starts adding subexcitations
                                 if (sne[0][0] + conf_dEng <= max_dEng) and (self._exc_overlap((dpos, dstate), sne[0][1])):
@@ -1378,9 +1409,8 @@ class otn2d:
                                     sdi = self._exc_add_to_d(*substate)
                                     new_bel.append( ((sEng[nn] + conf_dEng, sdi), ()) )
                     new_bel = sorted(new_bel, key=lambda x: x[0][0]) # sorted by energy
-                    
                     bel.extend(new_bel)
-                    el.append(bel)  # finish merging given branch
+                    el.append(bel)  # creates new list of excitations
 
                     # distinct_new_bel = []
                     # for x in new_bel:
@@ -1395,11 +1425,11 @@ class otn2d:
                     # bel.extend(distinct_new_bel)
                     # el.append(bel)  # finish merging given branch
 
-                prob = probn
-                deg = degn
-                vind = vind[uni]
-                states = states[uni]
-                Eng = Eng[uni]
+                vind = vindn[order_size]
+                states = statesn[order_size]
+                prob = probn[order_size]
+                Eng = Engn[order_size]
+                deg = degn[order_size]
                 self.el = el
 
                 RLnew = {}   ## update left environment

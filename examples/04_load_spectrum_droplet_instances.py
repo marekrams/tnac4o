@@ -19,9 +19,11 @@ def main():
                         help="Rotate graph by 90 deg r times. Default is 0. Used to try to search/contract from different sides.")
     parser.add_argument("-b", type=float, default=3,
                         help="Inverse temperature. Default is set at 3.")
+    parser.add_argument("-D", type=int, default=40,
+                        help="Maximal bond dimension of boundary MPS used to contract PEPS.")
     parser.add_argument("-M", type=int, default=2**10,
                         help="Maximal number of partial states kept during branch and bound search.")
-    parser.add_argument("-P", type=float, default=1e-6,
+    parser.add_argument("-P", type=float, default=1e-8,
                         help="Cuttof on the range of relative probabilities kept during branch and bound search.")
     parser.add_argument("-dE", type=float, default=1.0,
                         help="Limit on excitation energy.")
@@ -36,16 +38,16 @@ def main():
     args = parser.parse_args()
 
     if args.L == 128:
-        Nx, Ny, Nc = 4, 4, 8
+        # Nx, Ny, Nc = 4, 4, 8
         filename_in = ('./../instances/Chimera_droplet_instances/chimera128_spinglass_power/%03d.txt' % args.ins)
     elif args.L == 512:
-        Nx, Ny, Nc = 8, 8, 8
+        # Nx, Ny, Nc = 8, 8, 8
         filename_in = ('./../instances/Chimera_droplet_instances/chimera512_spinglass_power/%03d.txt' % args.ins)
     elif args.L == 1152:
-        Nx, Ny, Nc = 12, 12, 8
+        # Nx, Ny, Nc = 12, 12, 8
         filename_in = ('./../instances/Chimera_droplet_instances/chimera1152_spinglass_power/%03d.txt' % args.ins)
     elif args.L == 2048:
-        Nx, Ny, Nc = 16, 16, 8
+        # Nx, Ny, Nc = 16, 16, 8
         filename_in = ('./../instances/Chimera_droplet_instances/chimera2048_spinglass_power/%03d.txt' % args.ins)
 
     # load Jij couplings
@@ -61,14 +63,14 @@ def main():
     logging.basicConfig(level='INFO')
 
     # file to load
-    file_name = './temp/L=%1d_ins=%03d_r=%1d_beta=%0.2f_M=%1d_P=%0.2e_ee=%1d_dE=%0.3f_hd=%1d_pre=%1d.npy' \
-                % (args.L, args.ins, args.r, args.b, args.M, args.P, args.ee, args.dE, args.hd, args.pre)
+    file_name = './temp/L=%1d_ins=%03d_r=%1d_beta=%0.2f_D=%1d_M=%1d_P=%0.2e_ee=%1d_dE=%0.3f_hd=%1d_pre=%1d.npy' \
+                % (args.L, args.ins, args.r, args.b, args.D, args.M, args.P, args.ee, args.dE, args.hd, args.pre)
 
     # load instance
     try:
         ins = otn2d.load(file_name)
     except FileNotFoundError:
-        print('First run script 03_*.py with option `-s` and other parameters identical to generate a solution.')
+        print('First run script 03_search_spectrum_droplet_instances.py with option `-s` (and other parameters identical as here) to generate a solution to load.')
         quit()
 
     print('Decomposing excitation structure into low energy states.')

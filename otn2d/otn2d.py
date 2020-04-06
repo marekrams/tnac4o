@@ -1,4 +1,4 @@
-"""
+r"""
 The main module of the package.
 It puts together the heuristics to solve
 Ising-type optimization problems defined on a quasi-2d lattice (e.g., chimera graph),
@@ -16,8 +16,9 @@ import h5py
 import matplotlib.pyplot as plt
 from itertools import groupby
 
+
 def load_Jij(file_name):
-    """
+    r"""
     Loads couplings of the Ising model from a file.
 
     Args:
@@ -80,7 +81,7 @@ def energy_Jij(J, states):
 
 
 def load(file_name):
-    """
+    r"""
     Loads solution of an instance from a file.
 
     Args:
@@ -190,7 +191,7 @@ def load_openGM(fname, Nx, Ny):
 
 
 def energy_RMF(J, states):
-    """
+    r"""
     Calculates cost function for bit_string for RMF.
 
     Args:
@@ -326,7 +327,7 @@ class otn2d:
             self._divide_couplings()
 
     def save(self, file_name):
-        """
+        r"""
         Saves solution of the instance to a file.
 
         Args:
@@ -361,7 +362,7 @@ class otn2d:
         np.save(file_name, d)
 
     def plot(self, name='', ind=0, show=True):
-        """
+        r"""
         Plot obtained solution.
         """
         if ind < len(self.states):
@@ -372,7 +373,7 @@ class otn2d:
     #     return 0
 
     def show_properties(self):
-        """
+        r"""
         Displays basic properties of the lattice.
         """
         print("L:     ", self.L)
@@ -381,7 +382,7 @@ class otn2d:
         print("Beta:  ", self.beta)
 
     def show_solution(self, state=False):
-        """
+        r"""
         Shows the solution found and some info from search and contraction.
         """
         if len(self.energy) > 0:
@@ -427,7 +428,7 @@ class otn2d:
             return self.states[:ns]
 
     def rotate_graph(self, rot=1):
-        """
+        r"""
         Rotate 2d graph by 90 degrees.
 
         It is used to contract peps and search from other directions.
@@ -485,7 +486,7 @@ class otn2d:
                      graduate_truncation=False,
                      tolS=1e-16,
                      tolV=1e-10, max_sweeps=20):
-        """
+        r"""
         Apply the preconditioning procedure.
 
         Args:
@@ -520,7 +521,7 @@ class otn2d:
                             graduate_truncation=True,
                             Dmax=32, tolS=1e-16,
                             tolV=1e-10, max_sweeps=20):
-        """
+        r"""
         Searches for the most probable state (ground state) on a quasi-2d graph.
 
         Merge matching configurations during branch-and-bound search going line (ny=0:Ny-1) by line.
@@ -588,8 +589,8 @@ class otn2d:
                 newprob += prob[:, np.newaxis]
                 prob = np.reshape(newprob, cons_states*block_states)
                 minprob = np.min(minprob)
-                order = np.arange(prob.size)
 
+                order = np.arange(prob.size)
                 # cutoff on which relative probabilities are kept
                 if relative_P_cutoff > 0:
                     cutoff = np.max(prob) + np.log2(relative_P_cutoff)
@@ -690,7 +691,7 @@ class otn2d:
                        graduate_truncation=True,
                        Dmax=32, tolS=1e-15,
                        tolV=1e-10, max_sweeps=20):
-        """
+        r"""
         Samples from the Boltzman distribution on a quasi-2d graph.
 
         Probabilities kept as log2. Results are stored as instance attributes.
@@ -792,7 +793,7 @@ class otn2d:
                                    graduate_truncation=True,
                                    Dmax=32, tolS=1e-16,
                                    tolV=1e-10, max_sweeps=20):
-        """
+        r"""
         Searches for low-energy spectrum on a quasi-2d graph.
 
         Merge matching configurations during branch-and-bound search going line (ny=0:Ny-1) by line.
@@ -862,7 +863,7 @@ class otn2d:
                                        graduate_truncation=True,
                                        Dmax=32, tolS=1e-16,
                                        tolV=1e-10, max_sweeps=20):
-        """
+        r"""
         Searching for most probable states on quasi-2d graph.
         Merge and keeps track of excitation.
         Independence determined based on order of snake spanning 2d lattice.
@@ -908,6 +909,7 @@ class otn2d:
                 prob = np.reshape(newprob, cons_states*block_states)
                 minprob = np.min(minprob)
 
+                order = np.arange(prob.size)
                 # cutoff on which relative probabilities are kept
                 if relative_P_cutoff > 0:
                     cutoff = np.max(prob) + np.log2(relative_P_cutoff)
@@ -917,8 +919,6 @@ class otn2d:
                         pd_max = max(pd_max, prob[order[-keep-1]])
                         order = order[-keep:]
                         prob = prob[order]  # keep largest probabilities
-                else:
-                    order = np.arange(prob.size)
 
                 # inds = which previous states
                 # indc = and state at the considered cluster (site)
@@ -1045,7 +1045,7 @@ class otn2d:
         return Eng
 
     def add_noise(self, amplitude=1e-7):
-        """
+        r"""
         Adds a small random noise to the couplings.
 
         It should be used to remove accidental degeneracies while searching low-energy states in 'excitations_encoding' 2 or 3.
@@ -1075,7 +1075,7 @@ class otn2d:
                                        graduate_truncation=True,
                                        Dmax=32, tolS=1e-16,
                                        tolV=1e-10, max_sweeps=20):
-        """
+        r"""
         Searching for most probable states on quasi-2d graph.
         Merge and keeps track of excitation.
         Independence determined based on adjecency graph.
@@ -1123,6 +1123,7 @@ class otn2d:
                 prob = np.reshape(newprob, cons_states*block_states)
                 minprob = np.min(minprob)
 
+                order = np.arange(prob.size)
                 # cutoff on which relative probabilities are kept
                 if relative_P_cutoff > 0:
                     cutoff = np.max(prob) + np.log2(relative_P_cutoff)
@@ -1132,8 +1133,6 @@ class otn2d:
                         pd_max = max(pd_max, prob[order[-keep-1]])
                         order = order[-keep:]
                         prob = prob[order]  # keep largest probabilities
-                else:
-                    order = np.arange(prob.size)
 
                 # inds = which previous states
                 # indc = and state at the considered cluster (site)
@@ -1264,7 +1263,7 @@ class otn2d:
                                        graduate_truncation=True,
                                        Dmax=32, tolS=1e-16,
                                        tolV=1e-10, max_sweeps=20):
-        """
+        r"""
         Searching for most probable states on quasi-2d graph.
         Merge and keeps track of excitation.
         Independence determined based on adjecency graph.
@@ -1313,6 +1312,7 @@ class otn2d:
                 prob = np.reshape(newprob, cons_states*block_states)
                 minprob = np.min(minprob)
 
+                order = np.arange(prob.size)
                 # cutoff on which relative probabilities are kept
                 if relative_P_cutoff > 0:
                     cutoff = np.max(prob) + np.log2(relative_P_cutoff)
@@ -1322,8 +1322,6 @@ class otn2d:
                         pd_max = max(pd_max, prob[order[-keep-1]])
                         order = order[-keep:]
                         prob = prob[order]  # keep largest probabilities
-                else:
-                    order = np.arange(prob.size)
 
                 ## inds = which previous states
                 ## indc = and state at the considered cluster (site)
@@ -1485,7 +1483,7 @@ class otn2d:
         return Eng
 
     def decode_low_energy_states(self, max_dEng=0., max_states=1024):
-        """
+        r"""
         Decode excitation structure found into actuall low-energy states.
 
         It can be used after method :meth:`search_low_energy_spectrum`.
@@ -1516,7 +1514,7 @@ class otn2d:
         return Eng[0]
 
     def _divide_couplings(self):
-        """
+        r"""
         Preselect couplings contributing to peps tensor.
         """
         self.lu = np.ones((self.Ny, self.Nx), dtype=int)
@@ -1585,7 +1583,7 @@ class otn2d:
     #  Auxliary functions for local states numbering
 
     def _cluster_configurations(self, N):
-        """
+        r"""
         All spin configurations in a block.
         """
         st = np.array(list(itertools.product([1, 0], repeat=N)), dtype = np.int8)  # all configurations in block
@@ -1593,7 +1591,7 @@ class otn2d:
         return st
 
     def _ind_bond_down(self, st_number, ny, nx):
-        """
+        r"""
         Virtual indices selected by considered spin configurations.
         """
         if self.mode == 'Ising':
@@ -1604,7 +1602,7 @@ class otn2d:
             return np.mod(st_number, self.ld[ny, nx])  # update corresponding virtual indices
 
     def _ind_bond_right(self, st_number, ny, nx):
-        """
+        r"""
         Virtual indices selected by considered spin configurations.
         """
         if self.mode == 'Ising':
@@ -1615,7 +1613,7 @@ class otn2d:
             return np.mod(st_number, self.lr[ny, nx])  # update corresponding virtual indices
 
     def _ind_split(self, N, select):
-        """
+        r"""
         Return indices corresponding to delta for some of the spins.
         """
         ind_delta = np.zeros(1, dtype = int)
@@ -1630,6 +1628,10 @@ class otn2d:
         return ind_delta, ind_rest
 
     def _update_Eng(self, states, ny, nx):
+        r"""
+        Update energy of partial configuration during the search.
+        (well-defined part of energy, i.e. without couplings to unknown spins)
+        """
         if self.mode == 'Ising':
             st  = 2*self._cluster_configurations(self.sN[ny][nx])-1
             Es  = 1.*np.sum(np.dot(st, np.triu(self.Jin[ny][nx], 1)) * st, 1) + np.dot(st, self.Jin[ny][nx].diagonal())  # inner cluster energy
@@ -1681,7 +1683,7 @@ class otn2d:
     # Auxliary functions for PEPS contractions
 
     def _peps_tensor(self, ny, nx):
-        """
+        r"""
         Create peps tensors for exp(- beta H).
         """
         if self.mode == 'Ising':
@@ -1794,7 +1796,7 @@ class otn2d:
         return Es_full
 
     def _setup_rhoT(self, graduate_truncation=True, Dmax=32, tolS=1e-16, tolV=1e-10, max_sweeps=20):
-        """
+        r"""
         Creates environment for layers of peps; from top.
         """
         self.rhoT = [1]*(self.Ny+1)
@@ -1814,7 +1816,7 @@ class otn2d:
             #self.rhoT[ny].normC = 1.0
 
     def _setup_rhoB(self, graduate_truncation=True, Dmax=32, tolS=1e-16, tolV=1e-10, max_sweeps=20):
-        """
+        r"""
         Creates environment for layers of peps; from bottom.
         """
         self.rhoB = [1]*(self.Ny+1)
@@ -1834,7 +1836,7 @@ class otn2d:
             #self.rhoB[ny+1].normC = 1.0
 
     def _setup_rhoL(self, graduate_truncation=True, Dmax=32, tolS=1e-16, tolV=1e-10, max_sweeps=20):
-        """
+        r"""
         Creates environment for layers of peps; from left.
         """
         self.rhoL = [1]*(self.Nx+1)
@@ -1855,7 +1857,7 @@ class otn2d:
             #self.rhoL[nx+1].normC = 1.0
 
     def _setup_rhoR(self, graduate_truncation=True, Dmax=32, tolS=1e-16, tolV=1e-10, max_sweeps=20):
-        """
+        r"""
         Creates environment for layers of peps; from right.
         """
         self.rhoR = [1]*(self.Nx+1)
@@ -1876,7 +1878,7 @@ class otn2d:
             #self.rhoR[nx].normC = 1.0
 
     def _setup_RR(self, vind, ny):
-        """
+        r"""
         Creates environment to contract layer from right.
         """
         RRl = [{ () : np.ones((1, 1)) }]
@@ -1894,6 +1896,11 @@ class otn2d:
         return RRl
 
     def _calculate_Pn(self, A, RL, AT, RR):
+        r"""
+        Perform final contraction to get conditional probabilities.
+        If results are negative, distributes them uniformly.
+        Returns magnitude of relative 'negativnes', as a red flag.
+        """
         T1 = np.tensordot(RL, AT, axes=(0, 0))
         T2 = np.tensordot(T1, RR, axes= (1, 0))
         Pn = np.tensordot(A, T2, axes = ((1, 2), (0, 1)))
@@ -1914,7 +1921,7 @@ class otn2d:
     # functons for setting conditioning
 
     def _reset_X(self):
-        """
+        r"""
         Initialised diagonal matrices to condition peps.
         """
         self.Xu = np.ones((self.Ny, self.Nx, np.max(self.ld)))
@@ -1927,7 +1934,7 @@ class otn2d:
         # corresponding Xu, Xd; and Xl, Xr should combine to identity
 
     def _update_conditioning(self, direction='ud', graduate_truncation=False, Dmax=8, tolS=1e-16, tolV=1e-10, max_sweeps=4, max_scale=1024):
-        """
+        r"""
         A sweep searching for conditioning using balancing heuristics.
         """
         max_scale = mps.nfactor(np.sqrt(max_scale))
@@ -2114,7 +2121,7 @@ class otn2d:
     ##############
 
     def _exc_initialise(self):
-        """
+        r"""
         Assume nearest neighbour interaction on Nx x Ny lattice.
         """
         self.d = {}  # dict keeping excitations
@@ -2144,7 +2151,7 @@ class otn2d:
             self.adj_Ny = Ny
 
     def exc_show_properties(self):
-        """
+        r"""
         Displays some info on the tree storing excitation structure.
         """
         print("Excitation encoding  :", self.excitations_encoding)
@@ -2152,7 +2159,7 @@ class otn2d:
         print("Exc in first layer   :", len(self.el))
 
     def _exc_add_to_d(self, dpos, dstate):
-        """
+        r"""
         If shape is in the dictionary, return its key; else add it to the dictionary and returns new key.
         """
         droplet = (dpos, dstate)
@@ -2172,7 +2179,7 @@ class otn2d:
         return newkey
 
     def _exc_cut_energy(self, exc, maxdE):
-        """
+        r"""
         Recursively removes sub-excitations with too large energy.
         """
         nse = [] # new subexcitations list
@@ -2182,13 +2189,13 @@ class otn2d:
         return (exc[0], tuple(nse))
 
     def _exc_xor2ind(self, exc):
-        """
+        r"""
         Translates excitation (format as kept in dictionary) to mask for adjacency matrix
         """
         return np.hstack([ self.xor2ind[nn][ds] for nn, ds in zip(*exc)])
 
     def _exc_elementary(self, exc):
-        """
+        r"""
         Check if excitation is elementary (single-connected).
         """
         #exc = (dpos, dstate)
@@ -2217,7 +2224,7 @@ class otn2d:
             return (rest.size == 0) # if rest.size == 0 then it is connected, else if is not connected
 
     def _exc_overlap(self, ie1, ie2):
-        """
+        r"""
         Check if two shapes in the dictionary are connected.
 
         For mode Ising according to adjacency matrix.
@@ -2244,7 +2251,7 @@ class otn2d:
             return np.any(distance <= 1)
 
     def _exc_hd(self, dstate):
-        """
+        r"""
         Hamming distance of a droplet.
         """
         if self.mode == 'Ising':
@@ -2253,7 +2260,7 @@ class otn2d:
             return sum( bin(st).count('1') for st in dstate)
 
     def _exc_hd_comp(self, ie1, ie2):
-        """
+        r"""
         Hamming distance of the overlap of two droplets.
         """
 
@@ -2299,6 +2306,9 @@ class otn2d:
         return hd
 
     def _exc_merge(self, ie1, ie2):
+        r"""
+        Combines two excitations.
+        """
         if isinstance(ie1, int):
             dpos1, dstate1 = self.d[ie1]
         else:
@@ -2347,7 +2357,7 @@ class otn2d:
         return dpos, dstate
 
     def _exc_clear_d(self):
-        """
+        r"""
         Clear dictionary keeping existing shapes of excitations.
         """
         uq = []
@@ -2368,14 +2378,14 @@ class otn2d:
         self.invd = ninvd
 
     def _exc_get_sh(self, exc):
-        """
-        Semi-hash to faster identify shapes in dictionary.
+        r"""
+        Semi-hash to easier identify shapes in dictionary.
         """
         fnz = (exc[0][0], exc[1][0], exc[0][-1], exc[1][-1])
         return fnz
 
     def _exc_get_unique_keys(self, l):
-        """
+        r"""
         From list/tuple of excitations recursively gets unique keys of excitation shapes.
         """
         uq = []  # unique keys
@@ -2393,8 +2403,8 @@ class otn2d:
             return self._exc_unpack_v2(self.el, max_dEng=max_dEng, max_states=max_states, one_layer=True)
 
     def _exc_unpack_v1(self, el, max_dEng=0., max_states=np.inf):
-        """
-        Unpack excitations list l;=.
+        r"""
+        Unpack excitations list el.
         Encoding of excitations as in search_low_energy_spectrum_v1.
         Return all possible excitation energy states.
         Up to max_dEng and max_states.
@@ -2434,7 +2444,7 @@ class otn2d:
         return np.array(Eng), flip, #, np.array(Pn),
 
     def _exc_unpack_v2(self, l, max_dEng=0., max_states=np.inf, one_layer=False):
-        """
+        r"""
         Unpack excitations list l.
         Encoding of excitations as in search_low_energy_spectrum_v2.
         (and _v3 if one_layer=True)
@@ -2475,7 +2485,8 @@ class otn2d:
         return np.array(Eng), flip
 
     def _exc_excitations_to_list(self, l):
-        """
+        r"""
+        Can be used to output tree of excitations to list
         """
         exc = []
         for ee in l:
@@ -2504,8 +2515,8 @@ class otn2d:
         self._exc_print(el=self.el, layer=1)
 
     def _exc_print(self, el, layer=1):
-        """
-        Displays tree of the excitation structure.
+        r"""
+        Displays tree of the excitations structure.
         """
         for exc in el:
             Eng = exc[0][0]
@@ -2515,10 +2526,13 @@ class otn2d:
             self._exc_print(exc[1], layer+1)
 
     def exc_print_f(self, f):
+        r"""
+        Display tree of the excitations structure.
+        """
         self._exc_print_f(f, el=self.el, layer=1)
 
     def _exc_print_f(self, f, el, layer= 1):
-        """
+        r"""
         Print tree of the excitation structure to a file.
         """
         for exc in el:

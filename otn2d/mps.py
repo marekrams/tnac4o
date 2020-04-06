@@ -1,4 +1,4 @@
-"""
+r"""
 In this package, the PEPS tensor network is contracted using boundary matrix product state (MPS) approach.
 This module implement basic operations on MPS, as neccesary to do the contraction.
 """
@@ -8,7 +8,7 @@ import scipy.linalg as splinalg
 
 
 def svd(T):
-    """
+    r"""
     Wraper to SVD.
 
     Returns:
@@ -27,7 +27,7 @@ def svd(T):
 
 
 def qr(T):
-    """
+    r"""
     Wraper to QR.
 
     Returns:
@@ -46,7 +46,7 @@ def qr(T):
 
 
 def svd_S(T):
-    """
+    r"""
     Wraper to singular values from SVD.
 
     Returns:
@@ -58,8 +58,9 @@ def svd_S(T):
         S = splinalg.svd(T, full_matrices=False, lapack_driver='gesvd', compute_uv=False)
     return S
 
+
 def nfactor(T):
-    """
+    r"""
     Calculate normalisation of array.
 
     Returns:
@@ -71,7 +72,7 @@ def nfactor(T):
 
 
 def dot(phi, psi):
-    """Calculate dot product of two MPS: <phi|psi>."""
+    r"""Calculate dot product of two MPS: <phi|psi>."""
     RL = np.ones((1, 1))
     for n in range(psi.L):
         RL = psi._mps_RL(RL, psi.A[n], phi.A[n])
@@ -79,7 +80,7 @@ def dot(phi, psi):
 
 
 class MPS:
-    """
+    r"""
     Matrix Product States (MPS)
 
     Args:
@@ -91,7 +92,7 @@ class MPS:
     """
 
     def __init__(self, d=2, L=2, Dmax=2, initial='X', canonise='left'):
-        """
+        r"""
         Initializes MPS.
         """
         self.L = L  # chain length
@@ -108,7 +109,7 @@ class MPS:
         self.reset_mps(initial, Dmax, canonise)
 
     def show_properties(self):
-        """
+        r"""
         Shows basic properties of MPS.
         """
         print("L:", self.L)
@@ -120,7 +121,7 @@ class MPS:
         print("Cummulated norm C:", self.normC)
 
     def reset_mps(self, initial='randR', Dmax=2, canonise='left'):
-        """
+        r"""
         Initializes MPS.
         """
         self.D = self._Dset(Dmax, self.d)
@@ -142,7 +143,7 @@ class MPS:
             self.dtype = 'float64'
 
     def copy(self):
-        """
+        r"""
         Makes a copy of MPS.
         """
         phi = MPS(d=self.d, L=self.L, Dmax=1, initial='X', canonise=None)
@@ -158,7 +159,7 @@ class MPS:
         return phi
 
     def compress_mps(self, Dmax=np.inf, tolS=None, tolV=None, max_sweeps=4, graduate_truncation=True, verbose=False):
-        """
+        r"""
         Truncate MPS. Initialise with svd and then uses variational compression.
 
         Args:
@@ -184,7 +185,7 @@ class MPS:
         return overlap
 
     def canonise_left(self, compress=False, Dmax=np.inf, tol=None):
-        """
+        r"""
         Left canonise MPS.
 
         Args:
@@ -202,7 +203,7 @@ class MPS:
         self.F[-1], self.R[-1] = None, None
 
     def canonise_right(self, compress=False, Dmax=np.inf, tol=None):
-        """
+        r"""
         Right canonise MPS.
 
         Args:
@@ -220,7 +221,7 @@ class MPS:
         self.F[-1], self.R[-1] = None, None
 
     def variational_compress(self, phi, tol = None, max_sweeps = 1, verbose=False):
-        """
+        r"""
         Compress MPS variationally.
 
         Args:
@@ -263,27 +264,27 @@ class MPS:
         return overlap
 
     def reset_R(self):
-        """
+        r"""
         Reset R (no MPO) environment.
         """
         self.R = [np.ones((1, 1)) for _ in range(self.L+2)]
         self.R[-1] = None
 
     def reset_F(self):
-        """
+        r"""
         Reset F (with MPO) environment.
         """
         self.F = [np.ones((1, 1, 1)) for _ in range(self.L+2)]
         self.F[-1] = None
 
     def reset_S(self):
-        """
+        r"""
         Reset schmidt values S.
         """
         self.S = [self._one_S(self.D[n]) for n in range(self.L+1)]
 
     def measure_O1(self, O):
-        """
+        r"""
         Calculate expectation value: <psi|O_n|psi> for all n.
         O_n is 1-site operator and can be site dependent.
         """
@@ -298,7 +299,7 @@ class MPS:
         return expO
 
     def measure_O2(self, O):
-        """
+        r"""
         Calculate expectation value: <psi|O_n|psi> for all n.
         O_n is 2-site operator and can be site dependent.
         """
@@ -313,7 +314,7 @@ class MPS:
         return expO
 
     def measure_correlations(self, O):
-        """
+        r"""
         Calculate expectation value: <psi|O_n O_m|psi> for all 2-point correlators.
         O_n is 1-site operator and can be site dependent.
         """
@@ -334,8 +335,8 @@ class MPS:
             self.update_RL(n)
         return expOO
 
-    def apply_mpo(self, M, Hconj = False):
-        """
+    def apply_mpo(self, M, Hconj=False):
+        r"""
         Apply MPO to MPS: psi =H psi.  If Hconj: psi = H^dag psi.
         """
         for n in range(self.L):
@@ -343,28 +344,28 @@ class MPS:
                 self.A[n], self.D[n], self.d[n], self.D[n+1] = self._mps_HA(self.A[n], M.W[n], Hconj)
 
     def apply_diagonalO(self, diagO, n):
-        """
+        r"""
         Apply diagonal operator to MPS on site n.
         """
         for ii in range(len(diagO)):
             self.A[n][:, ii, :] *= diagO[ii]
 
     def attach_AC(self):
-        """
+        r"""
         A[n]*C[n+1] -> A[n].
         """
         n = self.pC-1
         self.A[n] = self._mps_AC(self.A[n], self.C)
 
     def attach_CA(self):
-        """
+        r"""
         C[n]*A[n] -> A[n].
         """
         n = self.pC
         self.A[n] = self._mps_CA(self.C, self.A[n])
 
     def update_RR(self, n):
-        """
+        r"""
         Include site n to its right environment R.
         """
         newR = self._mps_RR(self.R[n+1], self.A[n], self.A[n])
@@ -374,7 +375,7 @@ class MPS:
             self.R[n] = newR
 
     def setup_RR(self):
-        """
+        r"""
         Prepare right environment. Returns <psi|psi>.
         """
         for n in range(self.L-1, -1, -1):
@@ -382,7 +383,7 @@ class MPS:
         return self.R[-1]
 
     def update_RL(self, n):
-        """
+        r"""
         Include site n to its left environment.
         """
         newR = self._mps_RL(self.R[n], self.A[n], self.A[n])
@@ -392,7 +393,7 @@ class MPS:
             self.R[n+1] = newR
 
     def setup_RL(self):
-        """
+        r"""
         Prepare left environment.  Returns <psi|psi>.
         """
         for n in range(self.L):
@@ -400,7 +401,7 @@ class MPS:
         return self.R[-1]
 
     def update_RR_mix(self, phi, n):
-        """
+        r"""
         Include site n to its right mixed environment R.
         """
         newR = self._mps_RR(self.R[n+1], phi.A[n], self.A[n])
@@ -410,7 +411,7 @@ class MPS:
             self.R[n] = newR
 
     def setup_RR_mix(self, phi):
-        """
+        r"""
         Prepare right environment. Returns <psi|phi>.
         """
         for n in range(self.L-1, -1, -1):
@@ -418,7 +419,7 @@ class MPS:
         return self.R[-1]
 
     def update_RL_mix(self, phi, n):
-        """
+        r"""
         Include site n to its left mixed environment R.
         """
         newR = self._mps_RL(self.R[n], phi.A[n], self.A[n])
@@ -428,7 +429,7 @@ class MPS:
             self.R[n+1] = newR
 
     def setup_RL_mix(self, phi):
-        """
+        r"""
         Prepare left environment.  Returns <psi|phi>.
         """
         for n in range(self.L):
@@ -436,13 +437,13 @@ class MPS:
         return self.R[-1]
 
     def bond_env_mix(self, phi, n):
-        """
+        r"""
         Env of then n-th bond in <psi|phi>.
         """
         return self._mps_bond_env(self.R[n], phi.A[n], self.A[n], self.R[n+1])
 
     def update_FR(self, M, n):
-        """
+        r"""
         Update FL environment.
         """
         newF = self._mps_FR(self.F[n+1], M.W[n], self.A[n], self.A[n])
@@ -452,7 +453,7 @@ class MPS:
             self.F[n] = newF
 
     def setup_FR(self, M):
-        """
+        r"""
         Prepare FR environment. Returns <psi|H|psi>.
         """
         for n in range(self.L-1, -1, -1):
@@ -460,7 +461,7 @@ class MPS:
         return self.F[-1]
 
     def update_FL(self, M, n):
-        """
+        r"""
         update FL environment.
         """
         newF = self._mps_FL(self.F[n], M.W[n], self.A[n], self.A[n])
@@ -470,7 +471,7 @@ class MPS:
             self.F[n+1] = newF
 
     def setup_FL(self, M):
-        """
+        r"""
         Prepare FL environment. Returns <psi|H|psi>.
         """
         for n in range(self.L):
@@ -478,7 +479,7 @@ class MPS:
         return self.F[-1]
 
     def update_FR_mix(self, M, phi, n):
-        """
+        r"""
         Update mixed FR environment.
         """
         newF = self._mps_FR(self.F[n+1], M.W[n], phi.A[n], self.A[n])
@@ -488,7 +489,7 @@ class MPS:
             self.F[n] = newF
 
     def setup_FR_mix(self, M, phi):
-        """
+        r"""
         Prepare FR environment. Returns <psi|H|phi>.
         """
         for n in range(self.L-1, -1, -1):
@@ -496,7 +497,7 @@ class MPS:
         return self.F[-1]
 
     def update_FL_mix(self, M, phi, n):
-        """
+        r"""
         Update FL environment.
         """
         newF = self._mps_FL(self.F[n], M.W[n], phi.A[n], self.A[n])
@@ -506,7 +507,7 @@ class MPS:
             self.F[n+1] = newF
 
     def setup_FL_mix(self, M, phi):
-        """
+        r"""
         Prepare FL environment. Returns <psi|H|phi>.
         """
         for n in range(self.L):
@@ -514,7 +515,7 @@ class MPS:
         return self.F[-1]
 
     def orth_left(self, n):
-        """
+        r"""
         Left orthogonalization of n-th site; overwrites C.
         """
         self.A[n], self.C, nC, Dr = self._mps_decompose_AC(self.A[n])
@@ -523,7 +524,7 @@ class MPS:
         self.pC = n+1
 
     def orth_right(self, n):
-        """
+        r"""
         Right orthogonalization of n-th site; overwrites C.
         """
         self.C, self.A[n], nC, Dl = self._mps_decompose_CA(self.A[n])
@@ -532,7 +533,7 @@ class MPS:
         self.pC = n
 
     def update_S(self):
-        """
+        r"""
         Updates schmidt values; returns the differencs from the old ones.
         """
         S  = svd_S(self.C)
@@ -543,8 +544,8 @@ class MPS:
         self.S[self.pC] = S
         return dS
 
-    def truncateC(self, Dmax, tol = None):
-        """
+    def truncateC(self, Dmax, tol=None):
+        r"""
         Truncate C[n] with SVD.
 
         A[m] should be left canonical for m<=n and right canonical for m>n.
@@ -569,49 +570,49 @@ class MPS:
         return discarded
 
     def expectation_mix(self, phi, n):
-        """
+        r"""
         Calculate expectation value <psi|H|phi> given proper environments and MPO H[n].
         """
         return self._mps_expectation(self.R[n], self.R[n+1], phi.A[n], self.A[n])  # * (self.normC * phi.normC)
 
     def expectation_1mpo_mix(self, W, phi, n):
-        """
+        r"""
         Calculate expectation value <psi|H|phi> given proper environments and MPO H[n].
         """
         return self._mps_expectation_mpo(self.F[n], self.F[n+1], W, phi.A[n], self.A[n]) * (self.normC * phi.normC)
 
     def expectation_list_1mpo_mix(self, W, phi, n):
-        """
+        r"""
         Calculate expectation value <psi|H|phi> given proper environments and MPO H[n].
         """
         return self._mps_expectation_list_mpo(self.F[n], self.F[n+1], W, phi.A[n], self.A[n]) * (self.normC * phi.normC)
 
     def expectation_1site(self, O, n):
-        """
+        r"""
         Calculate expectation value of 1 site operator O.
         """
         return self._mps_expectation_O(self.R[n], self.R[n+1], self.A[n], self.A[n], O)
 
     def expectation_2site(self, O, n):
-        """
+        r"""
         Calculate expectation value of 2 site operator.
         """
         return self._mps_expectation_O2(self.R[n], self.R[n+2], self.A[n], self.A[n], self.A[n+1], self.A[n+1], O)
 
     def optimise_site(self, phi, n):
-        """
+        r"""
         Optimise site n for variational compression.
         """
         self.A[n] = self._mps_RAR(self.R[n], phi.A[n], self.R[n+1])
 
     def _one_S(self, D):
-        """Set S to have one non-zero value."""
+        r"""Set S to have one non-zero value."""
         S = np.zeros(D)
         S[0] = 1.
         return S
 
-    def _init_A(self, Dl, d, Dr, initial, state = 0):
-        """Initialise MPS tensor. X is maximally mixed state."""
+    def _init_A(self, Dl, d, Dr, initial, state=0):
+        r"""Initialise MPS tensor. X is maximally mixed state."""
         if initial is 'randR':
             return np.array(2*np.random.rand(Dl, d, Dr)-1, order='C')
         elif initial is 'randC':
@@ -626,7 +627,7 @@ class MPS:
             return np.array(A, order='C')
 
     def _Dset(self, Dmax, d):
-        """Sets bond dimension to match maximal one and physical dimensions."""
+        r"""Sets bond dimension to match maximal one and physical dimensions."""
         L = len(d)
         D=[1]*(L+1)
         for n in range(L):
@@ -642,32 +643,32 @@ class MPS:
         return np.tensordot(Ac, T, axes=([0, 1], [0, 1]))
 
     def _mps_RR(self, RR, A, Ac):
-        """Update right environment."""
+        r"""Update right environment."""
         T = np.tensordot(A, RR, axes=(2, 0))
         return np.tensordot(T, Ac, axes=([1, 2], [1, 2]))
 
     def _mps_RLO(self, RL, A, Ac, O):
-        """Update left environment with 1-site operator."""
+        r"""Update left environment with 1-site operator."""
         T1 = np.tensordot(RL, A, axes=(1, 0))
         T2 = np.tensordot(T1, O, axes=(1, 1))
         return np.tensordot(Ac, T2, axes=([0, 1], [0, 2]))
 
     def _mps_FL(self, FL, Hn, A, Ac):
-        """Update left environment with MPO"""
+        r"""Update left environment with MPO"""
         T1 = np.transpose(Ac, (2, 1, 0))
         T2 = np.tensordot(T1, FL, axes=(2, 0))
         T3 = np.tensordot(T2, Hn, axes=([1, 2], [1, 0]))
         return np.tensordot(T3, A, axes=([1, 3], [0, 1]))
 
     def _mps_FR(self, FR, Hn, A, Ac):
-        """Update right environment with MPO."""
+        r"""Update right environment with MPO."""
         T1 = np.transpose(A, (2, 1, 0))
         T2 = np.tensordot(FR, T1, axes=(2, 0))
         T3 = np.tensordot(Hn, T2, axes=([2, 3], [1, 2]))
         return np.tensordot(Ac, T3, axes=([1, 2], [1, 2]))
 
     def _mps_H1(self, FL, FR, Hn, A):
-        """Effective action of MPO on 1 MPS martix."""
+        r"""Effective action of MPO on 1 MPS martix."""
         sA = A.shape
         Dl, d, Dr = FL.shape[2], Hn.shape[3], FR.shape[2]
         T1 = np.transpose(np.reshape(A, [Dl, d, Dr]), (2, 1, 0))
@@ -676,13 +677,13 @@ class MPS:
         return np.reshape(np.tensordot(FL, T3, axes=([1, 2], [0, 3])), sA)
 
     def _mps_expectation(self, RL, RR, A, Ac):
-        """Calculate expectation value of MPO."""
+        r"""Calculate expectation value of MPO."""
         T1 = np.tensordot(RL, A, axes=(1, 0))
         T2 = np.tensordot(T1, RR, axes=(2, 0))
         return np.tensordot(T2, Ac,  axes=((0, 1, 2), (0, 1, 2)))
 
     def _mps_expectation_mpo(self, FL, FR, Hn, A, Ac):
-        """Calculate expectation value of MPO."""
+        r"""Calculate expectation value of MPO."""
         T1 = np.transpose(A, (2, 1, 0))
         T2 = np.tensordot(FR, T1, axes=(2, 0))
         T3 = np.tensordot(Hn, T2, axes=([2, 3], [1, 2]))
@@ -690,7 +691,7 @@ class MPS:
         return np.tensordot(FL, T4,  axes=([0, 1, 2], [0, 1, 2]))
 
     def _mps_expectation_list_mpo(self, FL, FR, Hn, A, Ac):
-        """Calculate expectation value of MPO."""
+        r"""Calculate expectation value of MPO."""
         T1 = np.transpose(A, (2, 1, 0))
         T2 = np.tensordot(FR, T1, axes=(2, 0))
         T3 = np.tensordot(Hn, T2, axes=([3, 4], [1, 2]))
@@ -698,14 +699,14 @@ class MPS:
         return np.tensordot(T4, FL,  axes=([1, 2, 3], [1, 2, 0]))
 
     def _mps_expectation_O(self, RL, RR, A, Ac, O):
-        """Calculate expectation value of 1 site operator."""
+        r"""Calculate expectation value of 1 site operator."""
         T1 = np.tensordot(RL, A, axes=(1, 0))
         T2 = np.tensordot(T1, RR, axes=(2, 0))
         T3 = np.tensordot(T2, O, axes=(1, 1))
         return np.tensordot(T3, Ac, axes=([0, 2, 1], [0, 1, 2]))
 
     def _mps_expectation_O2(self, RL, RR, A1, A1c, A2, A2c, O):
-        """Calculate expectation value of 1 site operator."""
+        r"""Calculate expectation value of 1 site operator."""
         AA = self._mps_AA(A1, A2)
         AAc = self._mps_AA(A1c, A2c)
         d1, d2 = A1.shape[1], A2.shape[1]
@@ -716,26 +717,26 @@ class MPS:
         return np.tensordot(T3, AAc, axes=([0, 2, 1], [0, 1, 2]))
 
     def _mps_AA(self, A1, A2):
-        """Collects two MPS sites into one."""
-        Dl, d1, _  = A1.shape
-        _ , d2, Dr = A2.shape
+        r"""Collects two MPS sites into one."""
+        Dl, d1, _ = A1.shape
+        _, d2, Dr = A2.shape
         return np.reshape(np.tensordot(A1, A2, axes=(2, 0)), [Dl, d1*d2, Dr])
 
     def _mps_AC(self, A, C):
-        """A, C -> AC."""
+        r"""A, C -> AC."""
         return np.tensordot(A, C, axes=(2, 0))
 
     def _mps_CA(self, C, A):
-        """C, A -> CA."""
+        r"""C, A -> CA."""
         return np.tensordot(C, A, axes=(1, 0))
 
     def _mps_RAR(self, RL, A, RR):
-        """RL, A, RR -> RL*A*RR."""
+        r"""RL, A, RR -> RL*A*RR."""
         T1 = np.tensordot(RL, A, axes=(1, 0))
         return np.tensordot(T1, RR, axes=(2, 0))
 
     def _mps_HA(self, A, Hn, Hconj):
-        """Applies MPO to MPS at site n. If Hconj then apply Hn^dag."""
+        r"""Applies MPO to MPS at site n. If Hconj then apply Hn^dag."""
         if Hconj:
             T = np.tensordot(A, Hn, axes=([1, 1]))
             T1 = np.transpose(T, (0, 2, 4, 1, 3))
@@ -747,14 +748,14 @@ class MPS:
         return np.reshape(T1, [Dl, d, Dr]), Dl, d, Dr
 
     def _mps_bond_env(self, RL, A, Ac, RR):
-        """Update left environment."""
-        T1  = np.tensordot(RL, A, axes=(1, 0))
+        r"""Update left environment."""
+        T1 = np.tensordot(RL, A, axes=(1, 0))
         T2 = np.tensordot(T1, RR, axes=(2, 0))
-        return  np.tensordot(T2, Ac, axes=([0, 2], [0, 2]))
+        return np.tensordot(T2, Ac, axes=([0, 2], [0, 2]))
 
-    ## decomposition of objects
+    # decomposition of objects
     def _mps_decompose_AC(self, A):
-        """Splits QR A -> AC."""
+        r"""Splits QR A -> AC."""
         Dl, d, Dr = A.shape
         Q, C = qr(np.reshape(A, [Dl*d, Dr]))
         nC = nfactor(C)
@@ -769,7 +770,7 @@ class MPS:
         return Q, C, nC, Dr
 
     def _mps_decompose_CA(self, A):
-        """Splits QR A -> CA."""
+        r"""Splits QR A -> CA."""
         Dl, d, Dr = A.shape
         Q, C = qr(np.reshape(A, [Dl, d*Dr]).T )
         nC = nfactor(C)
@@ -784,7 +785,7 @@ class MPS:
         return C, Q, nC, Dl
 
     def _mps_truncateC(self, C, Dmax, tol):
-        """Truncates C using svd."""
+        r"""Truncates C using svd."""
         U, S, V = svd(C)
         tol = max(np.finfo(float).eps, tol)
         keep = min(sum(S > (S[0] * tol)), Dmax)
@@ -795,12 +796,12 @@ class MPS:
         return projL, S, projR, keep, discarded
 
 #
-#==============================================================================
+# ==============================================================================
 #
 
 
 class MPO:
-    """
+    r"""
     Matrix Product Operator (MPO).
 
     Args:
@@ -827,21 +828,21 @@ class MPO:
             self.reset_site(n)
 
     def set_from_block(self, M, n):
-        """
+        r"""
         Sets MPO tensor from block matrix.
         """
         self.support[n] = 1
         self.W[n] = self._block_matrix_to_mpo(M, self.dout[n], self.din[n])
 
     def reset_site(self, n):
-        """
+        r"""
         Sets MPO tensor to identity.
         """
         self.support[n] = 0
         self.W[n] = self._mpo_identity(self.dout[n], self.din[n])
 
     def set_direct(self, W, n):
-        """
+        r"""
         Sets MPO tensor directly (it have to follow convention of the legs ordering).
         """
         self.support[n] = 1
@@ -849,19 +850,19 @@ class MPO:
         self.dout[n], self.din[n] = self._mpo_get_d(W)
 
     def _block_matrix_to_mpo(self, M, dout, din):
-        """Reshapes block matrix into MPO tensor."""
+        r"""Reshapes block matrix into MPO tensor."""
         sout, sin = M.shape
         H = np.transpose(np.reshape(M, [sout//dout, dout, sin//din, din]), (0, 1, 2, 3) )
         return H
 
     def _mpo_identity(self, dout, din):
-        """Identity MPO tensor."""
+        r"""Identity MPO tensor."""
         I = np.zeros((dout, din))
         np.fill_diagonal(I, 1)
         return np.transpose(np.reshape(I, [1, dout, 1, din]), (0, 1, 2, 3) )
 
     def _mpo_get_d(self, W):
-        """Dim of physical legs of MPO tensor."""
+        r"""Dim of physical legs of MPO tensor."""
         din = W.shape[3]
         dout = W.shape[1]
         return dout, din

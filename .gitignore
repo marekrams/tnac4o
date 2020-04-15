@@ -1,6 +1,3 @@
-# temp files
-examples/results/*.npy
-
 # OSX
 .DS_Store
 .vscode

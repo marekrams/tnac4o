@@ -1,22 +1,25 @@
 otn2d
 ============
-M. M. Rams, M. Mohseni and B. Gardas, "Optimization and discovery of spin–glass droplets with approximate tensor networks contractions,"
+M. M. Rams, M. Mohseni and B. Gardas, "Optimization and discovery of spin–glass droplets with approximate tensor networks contractions",
 https://arxiv.org/abs/1811.06518
 
 **otn2d** is an open-source package to heuristically solve Ising-type optimization problems defined on quasi-2d lattices, including, for instance, the chimera graph.
-It employs tensor network contractions to calculate marginal probabilities and identify the most probable states, according to Gibbs distribution.
-By identifying spin-glass droplets, it allows reconstructing the low-energy spectrum of the model.
-It can also be used for Random Markov Fields defined on 2d lattice.
+It employs tensor network contractions to calculate marginal probabilities and identify the most probable states according to Gibbs distribution.
+By identifying spin-glass droplets, it allows one to reconstruct the low-energy spectrum of the model.
+It can also be used for Random Markov Fields defined on a 2d lattice.
 
 Installation
 -------------
-
+In the main folder run:
+   ```
    pip install .
+   ```
+Make sure you are using python 3.6 or newer. 
 
-Usage example
+Usage examples
 --------------
 
-See folder \examples for scripts solving Ising problems defined on the chimera graph. We include a set of hard _droplet instances_ defined on chimera graphs of sizes _L_=128,512,1152,2048 in folder \instances. For instance, to find the ground state of instance 1 for _L_=128 run:
+See folder \examples for scripts showing the application of the package for Ising problems defined on the chimera graph. We include a set of hard _droplet instances_ defined on chimera graphs of sizes _L_=128,512,1152,2048 in folder \instances. For example, to find the ground state of instance number 1 for _L_=128 run:
    ```
    python 01_search_gs_droplet.py -L 128 -ins 1
    ```

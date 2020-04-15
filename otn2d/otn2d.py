@@ -12,9 +12,9 @@ import logging
 import scipy.sparse
 import scipy.linalg
 import time
-import h5py
-import matplotlib.pyplot as plt
 from itertools import groupby
+# import h5py
+# import matplotlib.pyplot as plt
 
 
 def load_Jij(file_name):
@@ -127,67 +127,67 @@ def load(file_name):
     return ins
 
 
-def load_openGM(fname, Nx, Ny):
-    r"""
-    Loads some factored graphs written in openGM format. Assumes rectangular lattice.
+# def load_openGM(fname, Nx, Ny):
+#     r"""
+#     Loads some factored graphs written in openGM format. Assumes rectangular lattice.
 
-    Args:
-        file_name (str): a path to file with factor graph in openGM format.
-        ints Nx, Ny: it is assumed that graph if forming an :math:`N_x \times N_y` lattice with
-            nearest-neighbour interactions only.
+#     Args:
+#         file_name (str): a path to file with factor graph in openGM format.
+#         ints Nx, Ny: it is assumed that graph if forming an :math:`N_x \times N_y` lattice with
+#             nearest-neighbour interactions only.
 
-    Returns:
-       dictionary with factors and funcitons defining the energy functional.
-    """
-    with h5py.File(fname, 'r') as hf:
-        keys = list(hf.keys())
-        data = hf[keys[0]]
-        H = list(data['header'])
-        #_, _, L, n_factors, _, _, n_functions, _ = H
-        F = np.array(data['factors'], dtype=int)
-        J = np.array(data['function-id-16000/indices'], dtype=int)
-        V = np.array(data['function-id-16000/values'], dtype=float)
-        N = np.array(data['numbers-of-states'], dtype=int)
+#     Returns:
+#        dictionary with factors and funcitons defining the energy functional.
+#     """
+#     with h5py.File(fname, 'r') as hf:
+#         keys = list(hf.keys())
+#         data = hf[keys[0]]
+#         H = list(data['header'])
+#         #_, _, L, n_factors, _, _, n_functions, _ = H
+#         F = np.array(data['factors'], dtype=int)
+#         J = np.array(data['function-id-16000/indices'], dtype=int)
+#         V = np.array(data['function-id-16000/values'], dtype=float)
+#         N = np.array(data['numbers-of-states'], dtype=int)
 
-    F = list(F[::-1])
-    factors = {}
-    while len(F) > 0:
-        f1 = F.pop()
-        z1 = F.pop()
-        nn = F.pop()
-        n = []
-        for _ in range(nn):
-            tt = F.pop()
-            ny, nx = tt // Nx, tt % Nx
-            n = n + [ny, nx]
-        if len(n) == 4:
-            if abs(n[0]-n[2])+abs(n[1]-n[3]) != 1:
-                Exception('Not nearest neighbour')
-        if len(n) == 2:
-            if (n[0] >= Ny) or (n[1] >= Nx):
-                Exception('Wrong size')
-        factors[tuple(n)] = f1
-        if z1 != 0:
-            Exception('Something wrong with the expected convention.')
+#     F = list(F[::-1])
+#     factors = {}
+#     while len(F) > 0:
+#         f1 = F.pop()
+#         z1 = F.pop()
+#         nn = F.pop()
+#         n = []
+#         for _ in range(nn):
+#             tt = F.pop()
+#             ny, nx = tt // Nx, tt % Nx
+#             n = n + [ny, nx]
+#         if len(n) == 4:
+#             if abs(n[0]-n[2])+abs(n[1]-n[3]) != 1:
+#                 Exception('Not nearest neighbour')
+#         if len(n) == 2:
+#             if (n[0] >= Ny) or (n[1] >= Nx):
+#                 Exception('Wrong size')
+#         factors[tuple(n)] = f1
+#         if z1 != 0:
+#             Exception('Something wrong with the expected convention.')
 
-    J = list(J[::-1])
-    functions, ii, lower = {}, -1, 0
-    while len(J) > 0:
-        ii += 1
-        nn = J.pop()
-        n = []
-        for _ in range(nn):
-            n.append(J.pop())
-        upper = lower + np.prod(n, dtype=int)
-        functions[ii] = np.reshape(V[lower:upper], n[::-1]).T
-        lower = upper
-    J = {}
-    J['fun'] = functions
-    J['fac'] = factors
-    J['N'] = np.reshape(N, (Ny, Nx))  # size of local block
-    J['Nx'] = Nx
-    J['Ny'] = Ny
-    return J
+#     J = list(J[::-1])
+#     functions, ii, lower = {}, -1, 0
+#     while len(J) > 0:
+#         ii += 1
+#         nn = J.pop()
+#         n = []
+#         for _ in range(nn):
+#             n.append(J.pop())
+#         upper = lower + np.prod(n, dtype=int)
+#         functions[ii] = np.reshape(V[lower:upper], n[::-1]).T
+#         lower = upper
+#     J = {}
+#     J['fun'] = functions
+#     J['fac'] = factors
+#     J['N'] = np.reshape(N, (Ny, Nx))  # size of local block
+#     J['Nx'] = Nx
+#     J['Ny'] = Ny
+#     return J
 
 
 def energy_RMF(J, states):
@@ -361,14 +361,14 @@ class otn2d:
             pass
         np.save(file_name, d)
 
-    def plot(self, name='', ind=0, show=True):
-        r"""
-        Plot obtained solution.
-        """
-        if ind < len(self.states):
-            plt.matshow(self.states[ind, :].reshape(self.Ny, self.Nx).T)
-            if show:
-                plt.show()
+    # def plot(self, name='', ind=0, show=True):
+    #     r"""
+    #     Plot obtained solution.
+    #     """
+    #     if ind < len(self.states):
+    #         plt.matshow(self.states[ind, :].reshape(self.Ny, self.Nx).T)
+    #         if show:
+    #             plt.show()
     #         plt.savefig(name+"_st="+str(ind)+".png")
     #     return 0
 
@@ -605,7 +605,7 @@ class otn2d:
                 # indc = and state at the considered cluster (site)
                 inds, indc = order // block_states, np.mod(order, block_states)
                 states = states[inds]
-                states[:, ny*self.Nx+nx] = indc[:]
+                states[:, ny*self.Nx+nx] = indc
                 vind = vind[inds]
                 deg = deg[inds]
                 # update corresponding virtual indices
@@ -1323,8 +1323,8 @@ class otn2d:
                         order = order[-keep:]
                         prob = prob[order]  # keep largest probabilities
 
-                ## inds = which previous states
-                ## indc = and state at the considered cluster (site)
+                # inds = which previous states
+                # indc = and state at the considered cluster (site)
                 inds, indc = order // block_states, np.mod(order, block_states)
                 states = states[inds]
                 states[:, ny*self.Nx+nx] = indc

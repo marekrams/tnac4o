@@ -8,7 +8,7 @@ import numpy as np
 def gibbs_sampling(L=128, instance=1,
                    rot=0, beta=3,
                    D=40,
-                   M=1024, relative_P_cutoff=1e-6,
+                   M=1024,
                    precondition=True):
     '''
     Runs a script smpling from Gibbs distribution for a droplet instance.

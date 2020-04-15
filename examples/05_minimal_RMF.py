@@ -6,7 +6,7 @@ from otn2d import otn2d
 
 def main(rot=0, beta=3,
          D=40,
-         M=1024, relative_P_cutoff=1e-6,
+         M=1024, relative_P_cutoff=1e-12,
          excitations_encoding=1,
          dE=1., hd=0,
          max_states=100,

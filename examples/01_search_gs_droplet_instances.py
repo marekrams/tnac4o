@@ -7,7 +7,7 @@ from otn2d import otn2d
 def search_gs_droplet(L=128, instance=1,
                       rot=0, beta=3,
                       D=40,
-                      M=1024, relative_P_cutoff=1e-6,
+                      M=1024, relative_P_cutoff=1e-8,
                       precondition=True):
     '''
     Runs a script searching for a ground state of a droplet instance.

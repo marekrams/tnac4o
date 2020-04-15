@@ -9,7 +9,7 @@ By identifying spin-glass droplets, it allows one to reconstruct the low-energy 
 It can also be used for Random Markov Fields defined on a 2d lattice.
 
 Installation
--------------
+------------
 In the main folder run:
    ```
    pip install .
@@ -19,18 +19,43 @@ Make sure you are using python 3.6 or newer.
 Usage examples
 --------------
 
-See folder \examples for scripts showing the application of the package for Ising problems defined on the chimera graph. We include a set of hard _droplet instances_ defined on chimera graphs of sizes _L_=128,512,1152,2048 in folder \instances. For example, to find the ground state of instance number 1 for _L_=128 run:
+See folder [examples](examples) for a set of scripts showing basic applications of the package.
+Most of the examples concern with Ising problems defined on a chimera graph. We include a set of hard _droplet instances_ defined on chimera graphs of sizes _L_=128,512,1152,2048, see folder [instances](instances). 
+
+For example, to find the ground state of instance number 1 for _L_=128 run:
    ```
-   python 01_search_gs_droplet.py -L 128 -ins 1
+   python 01_search_gs_droplet_instances.py -L 128 -ins 1
    ```
 To see some of the other available options run:
    ```
-   python 01_search_gs_droplet.py -h
+   python 01_search_gs_droplet_instances.py -h
    ```
 See the documentation for further details.
 
+Other examples include:
+
+Sampling from a Gibbs distribution at inverse temperature _beta_=1
+   ```
+   python 02_sample_droplet_instances.py -L 128 -ins 1 -b 1
+   ```
+   
+Searching for a structure of low-energy excitations and saving the result to a file (in folder [examples/results](examples/results))
+   ```
+   python 03_search_spectrum_droplet_instances.py -L 128 -ins 1 -s
+   ```
+
+Loading the solution from the previous script, and reconstructing the low-energy states:
+   ```
+   python 04_load_spectrum_droplet_instances.py -L 128 -ins 1
+   ```
+
+Finally, for a minimal example of a problem defined as a Random Markov Field see:
+   ```
+   python 05_minimal_RMF.py
+   ```
+
 Documentation
---------------
+-------------
 
 Build using sphinx.
    ```

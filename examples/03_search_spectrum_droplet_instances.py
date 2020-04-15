@@ -96,7 +96,7 @@ if __name__ == "__main__":
                         help="Strategy used to compress droplets. For excitations_encoding = 2 or 3 small noise is added to the couplings slighly modyfings energies.")
     parser.add_argument('-no-pre', dest='pre', action='store_false', help="Do not use preconditioning.")
     parser.set_defaults(pre=True)
-    parser.add_argument("-s", dest='s', action='store_true', help="Saves results to file in ./temp/")
+    parser.add_argument("-s", dest='s', action='store_true', help="Saves results to file in ./results/")
     parser.set_defaults(s=False)
     args = parser.parse_args()
 
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     # saves solution to file
     # saves before decoding excitations
     if args.s:
-        file_name = './temp/L=%1d_ins=%03d_r=%1d_beta=%0.2f_D=%1d_M=%1d_P=%0.2e_ee=%1d_dE=%0.3f_hd=%1d_pre=%1d.npy' \
+        file_name = './results/L=%1d_ins=%03d_r=%1d_beta=%0.2f_D=%1d_M=%1d_P=%0.2e_ee=%1d_dE=%0.3f_hd=%1d_pre=%1d.npy' \
                     % (args.L, args.ins, args.r, args.b, args.D, args.M, args.P, args.ee, args.dE, args.hd, args.pre)
         ins.save(file_name)
 

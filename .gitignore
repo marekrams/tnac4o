@@ -1,5 +1,5 @@
 # temp files
-examples/temp/
+examples/results/*.npy
 
 # OSX
 .DS_Store

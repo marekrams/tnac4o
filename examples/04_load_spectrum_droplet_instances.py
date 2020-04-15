@@ -63,7 +63,7 @@ def main():
     logging.basicConfig(level='INFO')
 
     # file to load
-    file_name = './temp/L=%1d_ins=%03d_r=%1d_beta=%0.2f_D=%1d_M=%1d_P=%0.2e_ee=%1d_dE=%0.3f_hd=%1d_pre=%1d.npy' \
+    file_name = './results/L=%1d_ins=%03d_r=%1d_beta=%0.2f_D=%1d_M=%1d_P=%0.2e_ee=%1d_dE=%0.3f_hd=%1d_pre=%1d.npy' \
                 % (args.L, args.ins, args.r, args.b, args.D, args.M, args.P, args.ee, args.dE, args.hd, args.pre)
 
     # load instance

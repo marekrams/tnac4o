@@ -81,7 +81,7 @@ if __name__ == "__main__":
                         help="Do not use preconditioning.")
     parser.set_defaults(pre=True)
     parser.add_argument("-s", dest='s', action='store_true',
-                        help="Save sampled states to txt file in ./temp/")
+                        help="Save sampled states to txt file in ./results/")
     parser.set_defaults(s=False)
     args = parser.parse_args()
 
@@ -94,15 +94,16 @@ if __name__ == "__main__":
 
     # output samples as bit-strings
     bit_strings = ins.binary_states()
-
-    # save it to ./temp/*.txt
-    filename = './temp/gibbs_L=%1d_ins=%03d_r=%1d_beta=%0.2f_D=%1d_M=%1d_pre=%1d.txt' \
-               % (args.L, args.ins, args.r, args.b, args.D, args.M, args.pre)
-    f = open(filename, 'w')
-    print("# One line per state; First column is the energy, the rest is a state; 1 = spin up = si=+1; 0 = spin down = si=-1", file=f)
-    for ii in range(len(ins.energy)):
-        st = np.zeros(ins.L+1)
-        st[1:] = bit_strings[ii]
-        st[0] = ins.energy[ii]
-        np.savetxt(f, np.c_[np.reshape(st, (1, ins.L+1))], fmt=' '.join(['%4.6f']+['%i']*ins.L),  delimiter=' ')
-    f.close()
+    
+    if args.s:
+        # save it to ./results/*.txt
+        filename = './results/gibbs_L=%1d_ins=%03d_r=%1d_beta=%0.2f_D=%1d_M=%1d_pre=%1d.txt' \
+                % (args.L, args.ins, args.r, args.b, args.D, args.M, args.pre)
+        f = open(filename, 'w')
+        print("# One line per state; First column is the energy, the rest is a state; 1 = spin up = si=+1; 0 = spin down = si=-1", file=f)
+        for ii in range(len(ins.energy)):
+            st = np.zeros(ins.L+1)
+            st[1:] = bit_strings[ii]
+            st[0] = ins.energy[ii]
+            np.savetxt(f, np.c_[np.reshape(st, (1, ins.L+1))], fmt=' '.join(['%4.6f']+['%i']*ins.L),  delimiter=' ')
+        f.close()

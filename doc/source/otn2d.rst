@@ -8,11 +8,3 @@ otn2d.otn2d module
    :members:
    :undoc-members:
    :show-inheritance:
-
-otn2d.mps module
-----------------
-
-.. automodule:: otn2d.mps
-   :members:
-   :undoc-members:
-   :show-inheritance:

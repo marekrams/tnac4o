@@ -1,83 +1,17 @@
 r"""
 The main module of the package.
-It puts together the heuristics to solve
+It puts together the heuristics to solve 
 Ising-type optimization problems defined on a quasi-2d lattice (e.g., chimera graph),
 or a Random Markov Field on 2d rectangular lattice.
 """
 
-import otn2d.mps as mps
+from . import mps
 import numpy as np
 import itertools
 import logging
 import scipy.sparse
 import scipy.linalg
 import time
-from itertools import groupby
-# import h5py
-# import matplotlib.pyplot as plt
-
-
-def load_Jij(file_name):
-    r"""
-    Loads couplings of the Ising model from a file.
-
-    Args:
-        file_name (str): a path to file with coupling written in the format, :math:`i~~j~~J_{ij}`.
-
-    Returns:
-        a list of Jij couplings.
-    """
-    J = np.loadtxt(file_name)
-    J = [[int(l[0]), int(l[1]), float(l[2])] for l in J]
-    return J
-
-
-def minus_Jij(J):
-    r"""
-    Change sign of all couplings :math:`J_{ij} \rightarrow -J_{ij}`.
-    """
-    return [[l[0], l[1], -l[2]] for l in J]
-
-
-def Jij_f2p(J):
-    r"""
-    Change 1-base indexig to 0-base indexing in a list of :math:`J_{ij}`.
-    """
-    return [[l[0]-1, l[1]-1, l[2]] for l in J]
-
-
-def Jij_p2f(J):
-    r"""
-    Change 0-base indexig to 1-base indexing in a list of :math:`J_{ij}`.
-    """
-    return [[l[0]+1, l[1]+1, l[2]] for l in J]
-
-
-def energy_Jij(J, states):
-    r"""
-    Calculates energies from bit_strings for Ising model.
-
-    Args:
-        J (list): list of couplings
-        states (nparray): 1 (spin up :math:`s_i=+1`), 0 (spin down :math:`s_i=-1`)
-
-    Returns:
-        Energies for all states.
-    """
-
-    L = len(states[0])
-
-    ii, jj, vv = zip(*J)
-    JJ = scipy.sparse.coo_matrix((vv, (ii, jj)), shape=(L, L))
-    JJ = scipy.sparse.triu(JJ) + scipy.sparse.tril(JJ, -1).T   # makes the coupling matrix upper triangular
-
-    st = 2*np.array(states)-1
-    Ns, dNs = st.shape[0], 1024
-    Eng = np.zeros(Ns, dtype=float)
-    for nn in range(0, Ns, dNs):
-        ind = np.arange(nn, min(nn+dNs, Ns))
-        Eng[ind] = np.sum(np.dot(st[ind], scipy.sparse.triu(JJ, 1).toarray())*st[ind], 1) + np.dot(st[ind], JJ.diagonal())
-    return Eng
 
 
 def load(file_name):
@@ -127,97 +61,9 @@ def load(file_name):
     return ins
 
 
-# def load_openGM(fname, Nx, Ny):
-#     r"""
-#     Loads some factored graphs written in openGM format. Assumes rectangular lattice.
-
-#     Args:
-#         file_name (str): a path to file with factor graph in openGM format.
-#         ints Nx, Ny: it is assumed that graph if forming an :math:`N_x \times N_y` lattice with
-#             nearest-neighbour interactions only.
-
-#     Returns:
-#        dictionary with factors and funcitons defining the energy functional.
-#     """
-#     with h5py.File(fname, 'r') as hf:
-#         keys = list(hf.keys())
-#         data = hf[keys[0]]
-#         H = list(data['header'])
-#         #_, _, L, n_factors, _, _, n_functions, _ = H
-#         F = np.array(data['factors'], dtype=int)
-#         J = np.array(data['function-id-16000/indices'], dtype=int)
-#         V = np.array(data['function-id-16000/values'], dtype=float)
-#         N = np.array(data['numbers-of-states'], dtype=int)
-
-#     F = list(F[::-1])
-#     factors = {}
-#     while len(F) > 0:
-#         f1 = F.pop()
-#         z1 = F.pop()
-#         nn = F.pop()
-#         n = []
-#         for _ in range(nn):
-#             tt = F.pop()
-#             ny, nx = tt // Nx, tt % Nx
-#             n = n + [ny, nx]
-#         if len(n) == 4:
-#             if abs(n[0]-n[2])+abs(n[1]-n[3]) != 1:
-#                 Exception('Not nearest neighbour')
-#         if len(n) == 2:
-#             if (n[0] >= Ny) or (n[1] >= Nx):
-#                 Exception('Wrong size')
-#         factors[tuple(n)] = f1
-#         if z1 != 0:
-#             Exception('Something wrong with the expected convention.')
-
-#     J = list(J[::-1])
-#     functions, ii, lower = {}, -1, 0
-#     while len(J) > 0:
-#         ii += 1
-#         nn = J.pop()
-#         n = []
-#         for _ in range(nn):
-#             n.append(J.pop())
-#         upper = lower + np.prod(n, dtype=int)
-#         functions[ii] = np.reshape(V[lower:upper], n[::-1]).T
-#         lower = upper
-#     J = {}
-#     J['fun'] = functions
-#     J['fac'] = factors
-#     J['N'] = np.reshape(N, (Ny, Nx))  # size of local block
-#     J['Nx'] = Nx
-#     J['Ny'] = Ny
-#     return J
-
-
-def energy_RMF(J, states):
-    r"""
-    Calculates cost function for bit_string for RMF.
-
-    Args:
-        J (dict): dictionary encoding the cost function as factored graph on 2d rectangular lattice.
-        states (nparray): configurations
-
-    Returns:
-        Energies for all states.
-    """
-    Engs = np.zeros(len(states))
-    for key, val in J['fac'].items():
-        if len(key) == 2:
-            ny, nx = key
-            n = ny*J['Nx']+nx
-            Engs += J['fun'][val][states[:, n]]
-        elif len(key) == 4:
-            ny1, nx1, ny2, nx2 = key
-            n1 = ny1*J['Nx']+nx1
-            n2 = ny2*J['Nx']+nx2
-            Engs += J['fun'][val][states[:, n1], states[:, n2]]
-    return Engs
-
-
 class otn2d:
     r"""
-    Contains instance to be solved.
+    Main class which collects all the methods to solve a given instance and store the results.
 
     Args:
         mode (str):
@@ -227,13 +73,13 @@ class otn2d:
             Allowed interactions include any couplings within clusters and couplings between spins in nearest-neighbor clusters.
 
             Spin index :math:`i = k N_x N_c+l N_c+m`, with :math:`k=0,1,\ldots,N_y-1`, :math:`l=0,1,\ldots,N_x-1`, :math:`m=0,1,\ldots,N_c-1` (zero-based indexing is used).
-            PEPS tensor corresponding to a given cluster is generated explicitly; hence:math:`N_c` cannot be too large. 
+            PEPS tensor corresponding to a given cluster is generated explicitly; hence :math:`N_c` cannot be too large.
             The exact value depends on :math:`N_c` itself, as well as the number of interacting spins between clusters.
 
-            Spins which are not active (with all :math:`J_{ij}` equal 0), are automatically recognized.  
+            Spins which are not active (with all :math:`J_{ij}` equal 0), are automatically recognized.
             They are not taken into account during the search.
 
-            ``'RMF'`` assumes a Random Markov Field type model on a 2d rectangular (Nx x Ny) lattice
+            ``'RMF'`` assumes a Random Markov Field type model on a 2d rectangular :math:`N_y \times N_x` lattice
             with cost function :math:`E = \sum_{\langle i,j \rangle} E(s_i, s_j) + \sum_i E(s_i)` and nearest-neighbour interactions only.
 
         ints Nx, Ny, Nc : defining lattice.
@@ -244,7 +90,7 @@ class otn2d:
             For mode ``'Ising'``, it should be a list of :math:`[i, j, J_{ij}]`.
             For mode ``'RMF'``, it should be a dictionary with fields\:
             'fun' (a dictionary of possible matrices :math:`E(s_i, s_j)` and :math:`E(s_i)` ), 'fac' (a dictionary with indices (n1y,n1x,n2y,n2x) or
-            (ny,nx) matching the interacting nearest-neighbour lattice sites with respective elements of 'fun'. 'N' is an :math:`N_y \times N_x` nparray of inf with variable ranges.
+            (ny,nx) matching the interacting nearest-neighbour lattice sites with respective elements of 'fun'. 'N' is an :math:`N_y \times N_x` nparray of int with variable ranges.
 
     Examples:
         ins = otn2d.otn2d(mode='Ising', Nx=16, Ny=16, Nc=8, beta=beta, J=J) would initialise a model including
@@ -267,7 +113,7 @@ class otn2d:
             The worst case is shown.
             The value shows the ratio of negative and positive conditional probabilities for one cluster and partial configuration.
         logger: logger
-        excitations_encoding: if the low-energy spectrum was searched, this is the index of the merging approach, which was used.
+        excitations_encoding: if the low-energy spectrum was searched, this is the index of the merging strategy, which was used.
         el: tree representing the hierarchy of droplets, as obtained during merging.
         d: dictionary of droplets' shapes.
     """
@@ -360,17 +206,6 @@ class otn2d:
         except AttributeError:
             pass
         np.save(file_name, d)
-
-    # def plot(self, name='', ind=0, show=True):
-    #     r"""
-    #     Plot obtained solution.
-    #     """
-    #     if ind < len(self.states):
-    #         plt.matshow(self.states[ind, :].reshape(self.Ny, self.Nx).T)
-    #         if show:
-    #             plt.show()
-    #         plt.savefig(name+"_st="+str(ind)+".png")
-    #     return 0
 
     def show_properties(self):
         r"""
@@ -618,7 +453,7 @@ class otn2d:
                 vindn, unique_inv = np.unique(vind, return_inverse=True, axis=0)
                 order = unique_inv.argsort()
                 unique_inv = unique_inv[order]
-                sizes = [len(list(g)) for _, g in groupby(unique_inv)]
+                sizes = [len(list(g)) for _, g in itertools.groupby(unique_inv)]
                 lsizes = len(sizes)
                 indn = np.zeros(lsizes, dtype=int)
                 degn = np.zeros(lsizes, dtype=int)
@@ -937,7 +772,7 @@ class otn2d:
                 vindn, unique_inv = np.unique(vind, return_inverse=True, axis=0)
                 order = unique_inv.argsort()
                 unique_inv = unique_inv[order]
-                sizes = [len(list(g)) for _, g in groupby(unique_inv)]
+                sizes = [len(list(g)) for _, g in itertools.groupby(unique_inv)]
                 lsizes = len(sizes)
                 indn = np.zeros(lsizes, dtype=int)
                 degn = np.zeros(lsizes, dtype=int)
@@ -1151,7 +986,7 @@ class otn2d:
                 vindn, unique_inv = np.unique(vind, return_inverse=True, axis=0)
                 order = unique_inv.argsort()
                 unique_inv = unique_inv[order]
-                sizes = [len(list(g)) for _, g in groupby(unique_inv)]
+                sizes = [len(list(g)) for _, g in itertools.groupby(unique_inv)]
                 lsizes = len(sizes)
                 indn = np.zeros(lsizes, dtype=int)
                 degn = np.zeros(lsizes, dtype=int)
@@ -1340,7 +1175,7 @@ class otn2d:
                 vindn, unique_inv = np.unique(vind, return_inverse=True, axis=0)
                 order = unique_inv.argsort()
                 unique_inv = unique_inv[order]
-                sizes = [len(list(g)) for _, g in groupby(unique_inv)]
+                sizes = [len(list(g)) for _, g in itertools.groupby(unique_inv)]
                 lsizes = len(sizes)
                 indn = np.zeros(lsizes, dtype=int)
                 degn = np.zeros(lsizes, dtype=int)
@@ -2150,7 +1985,7 @@ class otn2d:
             self.adj_Nx = Nx
             self.adj_Ny = Ny
 
-    def exc_show_properties(self):
+    def _exc_show_properties(self):
         r"""
         Displays some info on the tree storing excitation structure.
         """
@@ -2495,10 +2330,10 @@ class otn2d:
             exc.append(nee)
         return exc
 
-    def exc_export_shapes(self):
-        return self._exc_export_shapes(self.el)
+    def _exc_export_shapes(self):
+        return self._exc_export_shapes_el(self.el)
 
-    def _exc_export_shapes(self, el, ind=-1, d={}):
+    def _exc_export_shapes_el(self, el, ind=-1, d={}):
         if self.mode == 'RMF':
             for exc in el:
                 ind += 1
@@ -2508,15 +2343,18 @@ class otn2d:
                 ny = kk // self.adj_Nx
                 d[ind] = [Eng, list([x1, y1] for x1, y1 in zip(nx, ny))]
                 if exc[1]:
-                    d = self._exc_export_shapes(exc[1], ind, d)
+                    d = self._exc_export_shapes_el(exc[1], ind, d)
             return d
 
     def exc_print(self):
+        r"""
+        Displays tree of the excitations structure.
+        """
         self._exc_print(el=self.el, layer=1)
 
     def _exc_print(self, el, layer=1):
         r"""
-        Displays tree of the excitations structure.
+        Recursively displays tree of the excitations structure.
         """
         for exc in el:
             Eng = exc[0][0]
@@ -2524,19 +2362,3 @@ class otn2d:
             print((3*layer-3)*' '+"|- %0.4f "%(Eng)+' : '+' '.join(map(str, kk[0]))+' | '+' '.join(map(str, kk[1])))
             # ' '.join(["%2d " % v for v in exc[0][1:]])
             self._exc_print(exc[1], layer+1)
-
-    def exc_print_f(self, f):
-        r"""
-        Display tree of the excitations structure.
-        """
-        self._exc_print_f(f, el=self.el, layer=1)
-
-    def _exc_print_f(self, f, el, layer= 1):
-        r"""
-        Print tree of the excitation structure to a file.
-        """
-        for exc in el:
-            Eng = exc[0][0]
-            kk = self.d[exc[0][1]]
-            print("%1d "%(layer)+' '+"|- %0.4f "%(Eng)+' : '+' '.join(map(str, kk[0]))+' | '+' '.join(map(str, kk[1])), file=f)
-            self._exc_print_f(f, exc[1], layer+1)

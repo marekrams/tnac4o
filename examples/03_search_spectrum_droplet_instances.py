@@ -1,7 +1,7 @@
 import logging
 import argparse
 import time
-from otn2d import otn2d
+import otn2d
 
 
 def search_spectrum_droplet(L=128, instance=1,
@@ -44,7 +44,8 @@ def search_spectrum_droplet(L=128, instance=1,
     J = otn2d.Jij_f2p(J)
 
     # round J to multiplies of 1/75 for those instances
-    J = [[x[0], x[1], round(75.*x[2])/75.] for x in J]
+    # as couplings were saved with 6 digit precision
+    J = otn2d.round_Jij(J, 1/75)
 
     #  initialize solver
     ins = otn2d.otn2d(mode='Ising', Nx=Nx, Ny=Ny, Nc=Nc, J=J, beta=beta)

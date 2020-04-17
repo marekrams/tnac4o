@@ -1,7 +1,7 @@
 import logging
 import argparse
 import numpy as np
-from otn2d import otn2d
+import otn2d
 
 
 def main(rot=0, beta=3,

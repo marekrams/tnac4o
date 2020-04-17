@@ -5,3 +5,4 @@ otn2d
    :maxdepth: 4
 
    otn2d
+   aux

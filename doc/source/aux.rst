@@ -1,7 +1,7 @@
-otn2d
-=====
+aux
+===
 
-.. automodule:: otn2d.otn2d
+.. automodule:: otn2d.aux
    :members:
    :undoc-members:
    :show-inheritance:

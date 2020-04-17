@@ -9,13 +9,13 @@ import scipy.sparse
 
 def load_Jij(file_name):
     r"""
-    Loads couplings of the Ising model from a file.
+    Loads couplings of the Ising model/problem from a file.
 
     Args:
-        file_name (str): a path to file with coupling written in the format, :math:`i~~j~~J_{ij}`.
+        file_name (str): a path to file with coupling written in the format where each line contains i, j, Jij.
 
     Returns:
-        a list of Jij couplings.
+        a list of couplings with elements in the format [i, j, Jij].
     """
     J = np.loadtxt(file_name)
     J = [[int(l[0]), int(l[1]), float(l[2])] for l in J]
@@ -25,6 +25,12 @@ def load_Jij(file_name):
 def round_Jij(J, dJ):
     r"""
     Round couplings to multiplies of dJ.
+
+    Args:
+        J (list): a list of couplings with elements in the format [i, j, Jij].
+
+    Returns:
+        a list of [i, j, rJij] couplings, where rJij = round(Jij/dJ)*dJ
     """
     dJ = float(dJ)
     return [[x[0], x[1], round(x[2]/dJ)*dJ] for x in J]
@@ -32,23 +38,31 @@ def round_Jij(J, dJ):
 
 def minus_Jij(J):
     r"""
-    Change sign of all couplings :math:`J_{ij} \rightarrow -J_{ij}`.
+    Change sign of all Jij couplings.
+
+    Args:
+        J (list): a list of couplings with elements in the format [i, j, Jij].
+
+    Returns:
+        a list of [i, j, -Jij].
     """
     return [[l[0], l[1], -l[2]] for l in J]
 
 
 def Jij_f2p(J):
     r"""
-    Change 1-base indexig to 0-base indexing in a list of :math:`J_{ij}`.
+    Change 1-base indexig to 0-base indexing in a list of Jij couplings.
+
+    Class otn2d expects 0-based indexing.
+
+    Args:
+        J (list): a list of couplings with elements in the format [i, j, Jij].
+
+    Returns:
+        a list of [i-1, j-1, Jij].
+
     """
     return [[l[0]-1, l[1]-1, l[2]] for l in J]
-
-
-def Jij_p2f(J):
-    r"""
-    Change 0-base indexig to 1-base indexing in a list of :math:`J_{ij}`.
-    """
-    return [[l[0]+1, l[1]+1, l[2]] for l in J]
 
 
 def energy_Jij(J, states):
@@ -56,11 +70,11 @@ def energy_Jij(J, states):
     Calculates energies from bit_strings for Ising model.
 
     Args:
-        J (list): list of couplings
-        states (nparray): 1 (spin up :math:`s_i=+1`), 0 (spin down :math:`s_i=-1`)
+        J (list): a list of couplings with elements in the format [i, j, Jij]
+        states (nparray): used encoding\: 1 (spin up :math:`s_i=+1`), 0 (spin down :math:`s_i=-1`)
 
     Returns:
-        Energies for all states.
+        1d numpy array with energies of all states.
     """
 
     L = len(states[0])
@@ -84,11 +98,11 @@ def energy_RMF(J, states):
     Calculates cost function for bit_string for RMF.
 
     Args:
-        J (dict): dictionary encoding the cost function as factored graph on 2d rectangular lattice.
+        J (dict): dictionary encoding the cost function as factored graph on 2d rectangular lattice, see :meth:`otn2d.otn2d` for used conventions.
         states (nparray): configurations
 
     Returns:
-        Energies for all states.
+        1d numpy array with energies for all states.
     """
     Engs = np.zeros(len(states))
     for key, val in J['fac'].items():
@@ -102,66 +116,3 @@ def energy_RMF(J, states):
             n2 = ny2*J['Nx']+nx2
             Engs += J['fun'][val][states[:, n1], states[:, n2]]
     return Engs
-
-
-# def load_openGM(fname, Nx, Ny):
-#     r"""
-#     Loads some factored graphs written in openGM format. Assumes rectangular lattice.
-
-#     Args:
-#         file_name (str): a path to file with factor graph in openGM format.
-#         ints Nx, Ny: it is assumed that graph if forming an :math:`N_x \times N_y` lattice with
-#             nearest-neighbour interactions only.
-
-#     Returns:
-#        dictionary with factors and funcitons defining the energy functional.
-#     """
-#     with h5py.File(fname, 'r') as hf:
-#         keys = list(hf.keys())
-#         data = hf[keys[0]]
-#         H = list(data['header'])
-#         #_, _, L, n_factors, _, _, n_functions, _ = H
-#         F = np.array(data['factors'], dtype=int)
-#         J = np.array(data['function-id-16000/indices'], dtype=int)
-#         V = np.array(data['function-id-16000/values'], dtype=float)
-#         N = np.array(data['numbers-of-states'], dtype=int)
-
-#     F = list(F[::-1])
-#     factors = {}
-#     while len(F) > 0:
-#         f1 = F.pop()
-#         z1 = F.pop()
-#         nn = F.pop()
-#         n = []
-#         for _ in range(nn):
-#             tt = F.pop()
-#             ny, nx = tt // Nx, tt % Nx
-#             n = n + [ny, nx]
-#         if len(n) == 4:
-#             if abs(n[0]-n[2])+abs(n[1]-n[3]) != 1:
-#                 Exception('Not nearest neighbour')
-#         if len(n) == 2:
-#             if (n[0] >= Ny) or (n[1] >= Nx):
-#                 Exception('Wrong size')
-#         factors[tuple(n)] = f1
-#         if z1 != 0:
-#             Exception('Something wrong with the expected convention.')
-
-#     J = list(J[::-1])
-#     functions, ii, lower = {}, -1, 0
-#     while len(J) > 0:
-#         ii += 1
-#         nn = J.pop()
-#         n = []
-#         for _ in range(nn):
-#             n.append(J.pop())
-#         upper = lower + np.prod(n, dtype=int)
-#         functions[ii] = np.reshape(V[lower:upper], n[::-1]).T
-#         lower = upper
-#     J = {}
-#     J['fun'] = functions
-#     J['fac'] = factors
-#     J['N'] = np.reshape(N, (Ny, Nx))  # size of local block
-#     J['Nx'] = Nx
-#     J['Ny'] = Ny
-#     return J

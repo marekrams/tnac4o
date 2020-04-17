@@ -1,7 +1,7 @@
 r"""
 The main module of the package.
-It puts together the heuristics to solve 
-Ising-type optimization problems defined on a quasi-2d lattice (e.g., chimera graph),
+It puts together the heuristics to solve
+Ising-type optimization problems defined on a quasi-2d lattice (e.g., a chimera graph),
 or a Random Markov Field on 2d rectangular lattice.
 """
 
@@ -82,7 +82,7 @@ class otn2d:
             ``'RMF'`` assumes a Random Markov Field type model on a 2d rectangular :math:`N_y \times N_x` lattice
             with cost function :math:`E = \sum_{\langle i,j \rangle} E(s_i, s_j) + \sum_i E(s_i)` and nearest-neighbour interactions only.
 
-        ints Nx, Ny, Nc : defining lattice.
+        ints Nx, Ny, Nc : lattice shape.
         beta (float): sets the inverse temperature used during the search.
             It is the most relevant parameter, with larger beta allowing to better zoom in on low energy states,
             but making tensor network contraction numerically less stable.
@@ -93,8 +93,8 @@ class otn2d:
             (ny,nx) matching the interacting nearest-neighbour lattice sites with respective elements of 'fun'. 'N' is an :math:`N_y \times N_x` nparray of int with variable ranges.
 
     Examples:
-        ins = otn2d.otn2d(mode='Ising', Nx=16, Ny=16, Nc=8, beta=beta, J=J) would initialise a model including
-        a chimera graph C16 with 2048 spins, see e.g., https://docs.dwavesys.com/docs/latest/c_gs_4.html
+        ins = otn2d.otn2d(mode='Ising', Nx=16, Ny=16, Nc=8, beta=beta, J=J) initialises a model which 
+        includes interactions of a chimera graph C16 with 2048 spins, see e.g., https://docs.dwavesys.com/docs/latest/c_gs_4.html
 
     Returns:
         Obtained results are stored as instance attributes (see below).
@@ -130,7 +130,7 @@ class otn2d:
             if self.Nc <= 8:
                 self.indtype = np.int8
             elif self.Nc <= 9:
-                self.indtype = np.int16 
+                self.indtype = np.int16
             else:
                 raise('Single cluster is too large (this bound can be removed in otn2d.__init__).')
         elif self.mode == 'RMF':
@@ -174,7 +174,7 @@ class otn2d:
 
     def save(self, file_name):
         r"""
-        Saves solution of the instance to a file.
+        Saves solution of the instance to a .npy file.
 
         Args:
             file_name (str): where to save
@@ -218,7 +218,7 @@ class otn2d:
 
     def show_solution(self, state=False):
         r"""
-        Shows the solution found and some info from search and contraction.
+        Shows found solution and some info from search and contraction.
         """
         if len(self.energy) > 0:
             print("Energy            : %4.6f" % self.energy[0])
@@ -359,7 +359,7 @@ class otn2d:
         r"""
         Searches for the most probable state (ground state) on a quasi-2d graph.
 
-        Merge matching configurations during branch-and-bound search going line (ny=0:Ny-1) by line.
+        Merge matching configurations during branch-and-bound search going line by line (:math:`n_y=0:N_y-1`).
         It keeps track of GS degeneracy, distinguishing different energies with precision min_dEng.
         Probabilities kept as log2. Results are stored as instance attributes.
 
@@ -631,7 +631,7 @@ class otn2d:
         r"""
         Searches for low-energy spectrum on a quasi-2d graph.
 
-        Merge matching configurations during branch-and-bound search going line (ny=0:Ny-1) by line.
+        Merge matching configurations during branch-and-bound search going line by line (:math:`n_y=0:N_y-1`).
         Information about excited states (droplets) is collected during merging, which allows reconstructing the low-energy spectrum.
         It keeps track of GS degeneracy, distinguishing different energies with precision min_dEng.
         Probabilities kept as log2. Results are stored as instance attributes.
@@ -881,9 +881,9 @@ class otn2d:
 
     def add_noise(self, amplitude=1e-7):
         r"""
-        Adds a small random noise to the couplings.
+        Adds a small random noise to the couplings stored in the class.
 
-        It should be used to remove accidental degeneracies while searching low-energy states in 'excitations_encoding' 2 or 3.
+        It should be used to remove accidental degeneracies while searching for low-energy configurations using 'excitations_encoding' 2 or 3.
 
         Args:
             amplitude (float): the amplitude of the random noise.

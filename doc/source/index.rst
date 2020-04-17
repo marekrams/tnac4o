@@ -16,7 +16,7 @@ https://arxiv.org/abs/1811.06518
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Package description:
 
    otn2d
    aux

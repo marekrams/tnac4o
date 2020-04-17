@@ -59,6 +59,6 @@ Documentation
 
 Build using sphinx.
    ```
-   cd docs && make html
+   cd doc && make html
    ```
-The generated documentation can be found at `docs/build/html/index.html`
+The generated documentation can be found at `doc/build/html/index.html`

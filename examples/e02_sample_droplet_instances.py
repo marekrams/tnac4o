@@ -3,6 +3,7 @@ import argparse
 import time
 import otn2d
 import numpy as np
+import os
 
 
 def gibbs_sampling(L=128, instance=1,
@@ -24,16 +25,20 @@ def gibbs_sampling(L=128, instance=1,
     # filename of the instance of interest
     if L == 128:
         Nx, Ny, Nc = 4, 4, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera128_spinglass_power/%03d.txt' % instance)
+        filename_in = os.path.join(os.path.dirname(__file__),
+                      './../instances/Chimera_droplet_instances/chimera128_spinglass_power/%03d.txt' % instance)
     elif L == 512:
         Nx, Ny, Nc = 8, 8, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera512_spinglass_power/%03d.txt' % instance)
+        filename_in = os.path.join(os.path.dirname(__file__),
+                      './../instances/Chimera_droplet_instances/chimera512_spinglass_power/%03d.txt' % instance)
     elif L == 1152:
         Nx, Ny, Nc = 12, 12, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera1152_spinglass_power/%03d.txt' % instance)
+        filename_in = os.path.join(os.path.dirname(__file__),
+                      './../instances/Chimera_droplet_instances/chimera1152_spinglass_power/%03d.txt' % instance)
     elif L == 2048:
         Nx, Ny, Nc = 16, 16, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera2048_spinglass_power/%03d.txt' % instance)
+        filename_in = os.path.join(os.path.dirname(__file__),
+                      './../instances/Chimera_droplet_instances/chimera2048_spinglass_power/%03d.txt' % instance)
 
     # load Jij couplings
     J = otn2d.load_Jij(filename_in)
@@ -70,7 +75,8 @@ if __name__ == "__main__":
     parser.add_argument("-ins", type=int, choices=range(1, 101), metavar="[1-100]", default=1,
                         help="Instance number (1-100). Default is 1.")
     parser.add_argument("-r", type=int, default=0,
-                        help="Rotate graph by 90 deg r times. Default is 0. Used to try to search/contract from different sides.")
+                        help="Rotate graph by 90 deg r times. Default is 0. \
+                              Used to try to search/contract from different sides.")
     parser.add_argument("-b", type=float, default=3,
                         help="Inverse temperature. Default is set at 3.")
     parser.add_argument("-D", type=int, default=48,
@@ -97,10 +103,12 @@ if __name__ == "__main__":
 
     if args.s:
         # save it to ./results/*.txt
-        filename = './results/gibbs_L=%1d_ins=%03d_r=%1d_beta=%0.2f_D=%1d_M=%1d_pre=%1d.txt' \
-                % (args.L, args.ins, args.r, args.b, args.D, args.M, args.pre)
+        filename = os.path.join(os.path.dirname(__file__),
+                   './results/gibbs_L=%1d_ins=%03d_r=%1d_beta=%0.2f_D=%1d_M=%1d_pre=%1d.txt' \
+                   % (args.L, args.ins, args.r, args.b, args.D, args.M, args.pre))
         f = open(filename, 'w')
-        print("# One line per state; First column is the energy, the rest is a state; 1 = spin up = si=+1; 0 = spin down = si=-1", file=f)
+        print("# One line per state; First column is the energy, the rest is a state; \
+                1 = spin up = si=+1; 0 = spin down = si=-1", file=f)
         for ii in range(len(ins.energy)):
             st = np.zeros(ins.L+1)
             st[1:] = bit_strings[ii]

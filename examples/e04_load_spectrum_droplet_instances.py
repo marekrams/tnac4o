@@ -2,6 +2,7 @@ import logging
 import argparse
 import time
 import otn2d
+import os
 
 
 def main():
@@ -42,17 +43,21 @@ def main():
     args = parser.parse_args()
 
     if args.L == 128:
-        # Nx, Ny, Nc = 4, 4, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera128_spinglass_power/%03d.txt' % args.ins)
+        Nx, Ny, Nc = 4, 4, 8
+        filename_in = os.path.join(os.path.dirname(__file__),
+                      './../instances/Chimera_droplet_instances/chimera128_spinglass_power/%03d.txt' % args.ins)
     elif args.L == 512:
-        # Nx, Ny, Nc = 8, 8, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera512_spinglass_power/%03d.txt' % args.ins)
+        Nx, Ny, Nc = 8, 8, 8
+        filename_in = os.path.join(os.path.dirname(__file__),
+                      './../instances/Chimera_droplet_instances/chimera512_spinglass_power/%03d.txt' % args.ins)
     elif args.L == 1152:
-        # Nx, Ny, Nc = 12, 12, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera1152_spinglass_power/%03d.txt' % args.ins)
+        Nx, Ny, Nc = 12, 12, 8
+        filename_in = os.path.join(os.path.dirname(__file__),
+                      './../instances/Chimera_droplet_instances/chimera1152_spinglass_power/%03d.txt' % args.ins)
     elif args.L == 2048:
-        # Nx, Ny, Nc = 16, 16, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera2048_spinglass_power/%03d.txt' % args.ins)
+        Nx, Ny, Nc = 16, 16, 8
+        filename_in = os.path.join(os.path.dirname(__file__),
+                      './../instances/Chimera_droplet_instances/chimera2048_spinglass_power/%03d.txt' % args.ins)
 
     # load Jij couplings
     J = otn2d.load_Jij(filename_in)
@@ -68,15 +73,15 @@ def main():
     logging.basicConfig(level='INFO')
 
     # file to load
-    file_name = './results/L=%1d_ins=%03d_r=%1d_beta=%0.2f_D=%1d_M=%1d_P=%0.2e_ee=%1d_dE=%0.3f_hd=%1d_pre=%1d.npy' \
-                % (args.L, args.ins, args.r, args.b, args.D, args.M, args.P, args.ee, args.dE, args.hd, args.pre)
+    file_name = os.path.join(os.path.dirname(__file__),
+                './results/L=%1d_ins=%03d_r=%1d_beta=%0.2f_D=%1d_M=%1d_P=%0.2e_ee=%1d_dE=%0.3f_hd=%1d_pre=%1d.npy' \
+                % (args.L, args.ins, args.r, args.b, args.D, args.M, args.P, args.ee, args.dE, args.hd, args.pre))
 
     # load instance
     try:
         ins = otn2d.load(file_name)
     except FileNotFoundError:
-        print('First run script 03_search_spectrum_droplet_instances.py with option `-s` (and other parameters identical as here) to generate a solution to load.')
-        quit()
+        raise Exception('First run script e03_search_spectrum_droplet_instances.py with option `-s`')
 
     print('Decomposing excitation structure into low energy states.')
     keep_time_decode = time.time()

@@ -2,6 +2,7 @@ import logging
 import argparse
 import time
 import otn2d
+import os
 
 
 def search_spectrum_droplet(L=128, instance=1,
@@ -25,16 +26,20 @@ def search_spectrum_droplet(L=128, instance=1,
     # filename of the instance of interest
     if L == 128:
         Nx, Ny, Nc = 4, 4, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera128_spinglass_power/%03d.txt' % instance)
+        filename_in = os.path.join(os.path.dirname(__file__),
+                      './../instances/Chimera_droplet_instances/chimera128_spinglass_power/%03d.txt' % instance)
     elif L == 512:
         Nx, Ny, Nc = 8, 8, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera512_spinglass_power/%03d.txt' % instance)
+        filename_in = os.path.join(os.path.dirname(__file__),
+                      './../instances/Chimera_droplet_instances/chimera512_spinglass_power/%03d.txt' % instance)
     elif L == 1152:
         Nx, Ny, Nc = 12, 12, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera1152_spinglass_power/%03d.txt' % instance)
+        filename_in = os.path.join(os.path.dirname(__file__),
+                      './../instances/Chimera_droplet_instances/chimera1152_spinglass_power/%03d.txt' % instance)
     elif L == 2048:
         Nx, Ny, Nc = 16, 16, 8
-        filename_in = ('./../instances/Chimera_droplet_instances/chimera2048_spinglass_power/%03d.txt' % instance)
+        filename_in = os.path.join(os.path.dirname(__file__),
+                      './../instances/Chimera_droplet_instances/chimera2048_spinglass_power/%03d.txt' % instance)
 
     # load Jij couplings
     J = otn2d.load_Jij(filename_in)
@@ -78,7 +83,8 @@ if __name__ == "__main__":
     parser.add_argument("-ins", type=int, choices=range(1, 101), metavar="[1-100]", default=1,
                         help="Instance number (1-100). Default is 1.")
     parser.add_argument("-r", type=int, default=0,
-                        help="Rotate graph by 90 deg r times. Default is 0. Used to try to search/contract from different sides.")
+                        help="Rotate graph by 90 deg r times. Default is 0. \
+                              Used to try to search/contract from different sides.")
     parser.add_argument("-b", type=float, default=3,
                         help="Inverse temperature. Default is set at 3.")
     parser.add_argument("-D", type=int, default=48,
@@ -94,7 +100,8 @@ if __name__ == "__main__":
     parser.add_argument("-max_st", type=int, default=2**20,
                         help="Limit total number of low energy states which is being reconstructed.")
     parser.add_argument("-ee", type=int, default=1, choices=[1, 2, 3],
-                        help="Strategy used to compress droplets. For excitations_encoding = 2 or 3 small noise is added to the couplings slighly modyfings energies.")
+                        help="Strategy used to compress droplets. \
+                        For excitations_encoding = 2 or 3 small noise is added to the couplings slighly modyfings energies.")
     parser.add_argument('-no-pre', dest='pre', action='store_false', help="Do not use preconditioning.")
     parser.set_defaults(pre=True)
     parser.add_argument("-s", dest='s', action='store_true', help="Saves results to file in ./results/")
@@ -115,8 +122,9 @@ if __name__ == "__main__":
     # saves solution to file
     # saves before decoding excitations
     if args.s:
-        file_name = './results/L=%1d_ins=%03d_r=%1d_beta=%0.2f_D=%1d_M=%1d_P=%0.2e_ee=%1d_dE=%0.3f_hd=%1d_pre=%1d.npy' \
-                    % (args.L, args.ins, args.r, args.b, args.D, args.M, args.P, args.ee, args.dE, args.hd, args.pre)
+        file_name = os.path.join(os.path.dirname(__file__),
+                    './results/L=%1d_ins=%03d_r=%1d_beta=%0.2f_D=%1d_M=%1d_P=%0.2e_ee=%1d_dE=%0.3f_hd=%1d_pre=%1d.npy' \
+                    % (args.L, args.ins, args.r, args.b, args.D, args.M, args.P, args.ee, args.dE, args.hd, args.pre))
         ins.save(file_name)
 
     # display solution on screen

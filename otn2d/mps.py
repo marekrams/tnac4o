@@ -132,12 +132,12 @@ class MPS:
         self.reset_F()
         self.reset_S()
         self.discarded = [0] * (self.L+1)
-        if canonise is 'left':
+        if canonise == 'left':
             self.canonise_left()
-        elif canonise is 'right':
+        elif canonise == 'right':
             self.canonise_right()
         self.normC = 1.
-        if initial is 'randC':
+        if initial == 'randC':
             self.dtype = 'complex128'
         else:
             self.dtype = 'float64'
@@ -614,15 +614,15 @@ class MPS:
 
     def _init_A(self, Dl, d, Dr, initial, state=0):
         r"""Initialise MPS tensor. X is maximally mixed state."""
-        if initial is 'randR':
+        if initial == 'randR':
             return np.array(2*np.random.rand(Dl, d, Dr)-1, order='C')
-        elif initial is 'randC':
+        elif initial == 'randC':
             return np.array((2*np.random.rand(Dl, d, Dr)-1) + 1j*(2*np.random.rand(Dl, d, Dr)-1), order='C')
-        elif initial is 'X':
+        elif initial == 'X':
             A = np.zeros((Dl, d, Dr))
             A[0, :, 0] = 1./np.sqrt(d)
             return np.array(A, order='C')
-        else:  ## is 'Z'
+        else:  ## == 'Z'
             A = np.zeros((Dl, d, Dr))
             A[0, state, 0] = 1
             return np.array(A, order='C')

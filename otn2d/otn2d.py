@@ -1647,7 +1647,7 @@ class otn2d:
                 for ii in range(L3):
                     A[ii, :, ii, :] = Es_full[ii, :, :]*self.Xr[ny, nx, ii]
             else:
-                Exception(' Function size is wrong ')
+                Exception('Function size is wrong ')
 
             #add delta L2 (down) + conditioning
             Es_full = np.zeros((N, L1, L2, L3, L4))
@@ -1657,7 +1657,7 @@ class otn2d:
                 for ii in range(L2):
                     Es_full[ii, :, ii, :, :] = A[ii, :, :, :]*self.Xd[ny, nx, ii]
             else:
-                Exception(' Function size is wrong ')
+                Exception('Function size is wrong ')
 
         return Es_full
 
@@ -1817,7 +1817,7 @@ class otn2d:
         A sweep searching for conditioning using balancing heuristics.
         """
         max_scale = mps.nfactor(np.sqrt(max_scale))
-        if direction is 'ud':
+        if direction == 'ud':
             self._setup_rhoT(graduate_truncation=graduate_truncation, 
                              Dmax=Dmax, tolS=tolS,
                              tolV=tolV, max_sweeps=max_sweeps)  # is left canonical
@@ -1907,7 +1907,7 @@ class otn2d:
             self.overlaps_ud = np.vstack([self.overlaps_ud, overlaps])
             self.rhoB = []
 
-        elif direction is 'lr':
+        elif direction == 'lr':
             self._setup_rhoL(graduate_truncation=graduate_truncation, 
                             Dmax=Dmax, tolS=tolS,
                             tolV=tolV, max_sweeps=max_sweeps)  # is left canonical

@@ -7,6 +7,10 @@ import otn2d
 def main():
     """
     Runs a script loading solution for low energy spectrum, and decoding it.
+
+    Instances are located in the folder ./../instances/.
+    Reasonable (but not neccesarily optimal) values of parameters for those instances are set as default.
+    Some can be changed using options in this script. See documentation for more information.
     """
     # Initialize global logging level to INFO.
 
@@ -19,7 +23,7 @@ def main():
                         help="Rotate graph by 90 deg r times. Default is 0. Used to try to search/contract from different sides.")
     parser.add_argument("-b", type=float, default=3,
                         help="Inverse temperature. Default is set at 3.")
-    parser.add_argument("-D", type=int, default=40,
+    parser.add_argument("-D", type=int, default=48,
                         help="Maximal bond dimension of boundary MPS used to contract PEPS.")
     parser.add_argument("-M", type=int, default=2**10,
                         help="Maximal number of partial states kept during branch and bound search.")

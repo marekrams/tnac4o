@@ -6,7 +6,7 @@ import otn2d
 
 def search_spectrum_droplet(L=128, instance=1,
                             rot=0, beta=3,
-                            D=40,
+                            D=48,
                             M=1024, relative_P_cutoff=1e-8,
                             excitations_encoding=1,
                             dE=1., hd=0,
@@ -14,9 +14,9 @@ def search_spectrum_droplet(L=128, instance=1,
     """
     Runs a script searching for ground state of `droplet instances`.
 
-    Instances are located in the folder ./../instances/
-    Reasonable (but not neccesarily optimal) values of parameters are used by default.
-    Some can be chaged using options in this script.
+    Instances are located in the folder ./../instances/.
+    Reasonable (but not neccesarily optimal) values of parameters for those instances are set as default.
+    Some can be changed using options in this script. See documentation for more information.
     """
 
     # Initialize global logging level to INFO.
@@ -49,7 +49,7 @@ def search_spectrum_droplet(L=128, instance=1,
 
     #  initialize solver
     ins = otn2d.otn2d(mode='Ising', Nx=Nx, Ny=Ny, Nc=Nc, J=J, beta=beta)
-    ins.logger.info('Analysing droplet instance %1d on chimera graph of %1d sites.'%(instance, L))
+    ins.logger.info('Analysing droplet instance %1d on chimera graph of %1d sites.' % (instance, L))
 
     #  rotates graph
     if rot > 0:
@@ -81,7 +81,7 @@ if __name__ == "__main__":
                         help="Rotate graph by 90 deg r times. Default is 0. Used to try to search/contract from different sides.")
     parser.add_argument("-b", type=float, default=3,
                         help="Inverse temperature. Default is set at 3.")
-    parser.add_argument("-D", type=int, default=40,
+    parser.add_argument("-D", type=int, default=48,
                         help="Maximal bond dimension of boundary MPS used to contract PEPS.")
     parser.add_argument("-M", type=int, default=2**10,
                         help="Maximal number of partial states kept during branch and bound search.")

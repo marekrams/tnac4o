@@ -24,34 +24,34 @@ Most of the examples concern with Ising problems defined on a chimera graph. We 
 
 For example, to find the ground state of instance number 1 for _L_=128 run:
    ```
-   python 01_search_gs_droplet_instances.py -L 128 -ins 1
+   python e01_search_gs_droplet_instances.py -L 128 -ins 1
    ```
 To see some of the other available options run:
    ```
-   python 01_search_gs_droplet_instances.py -h
+   python e01_search_gs_droplet_instances.py -h
    ```
 See the documentation for further details.
 
 Other examples include:
 
-Sampling from a Gibbs distribution at inverse temperature _beta_=1
+Sampling from a Gibbs distribution, here at inverse temperature _beta_=1
    ```
-   python 02_sample_droplet_instances.py -L 128 -ins 1 -b 1
+   python e02_sample_droplet_instances.py -L 128 -ins 1 -b 1
    ```
    
 Searching for a structure of low-energy excitations and saving the result to a file (in folder [examples/results](examples/results))
    ```
-   python 03_search_spectrum_droplet_instances.py -L 128 -ins 1 -s
+   python e03_search_spectrum_droplet_instances.py -L 128 -ins 1 -s
    ```
 
 Loading the solution from the previous script, and reconstructing the low-energy states:
    ```
-   python 04_load_spectrum_droplet_instances.py -L 128 -ins 1
+   python e04_load_spectrum_droplet_instances.py -L 128 -ins 1
    ```
 
 Finally, for a minimal example of a problem defined as a Random Markov Field see:
    ```
-   python 05_minimal_RMF.py
+   python e05_minimal_RMF.py
    ```
 
 Documentation

@@ -4,13 +4,13 @@ import numpy as np
 import otn2d
 
 
-def main(rot=0, beta=3,
-         D=40,
-         M=1024, relative_P_cutoff=1e-12,
-         excitations_encoding=1,
-         dE=1., hd=0,
-         max_states=100,
-         precondition=False):
+def minimal_RMF(rot=0, beta=3,
+                D=32,
+                M=1024, relative_P_cutoff=1e-12,
+                excitations_encoding=1,
+                dE=3.1, hd=0,
+                max_states=100,
+                precondition=False):
     """
     Runs a minimal example of Random Markov Field.
     """
@@ -71,7 +71,7 @@ if __name__ == "__main__":
                         help="Inverse temperature. Default is set at 3.")
     parser.add_argument("-D", type=int, default=32,
                         help="Maximal bond dimension of boundary MPS used to contract PEPS.")
-    parser.add_argument("-M", type=int, default=2**7,
+    parser.add_argument("-M", type=int, default=2**10,
                         help="Maximal number of partial states kept during branch and bound search.")
     parser.add_argument("-P", type=float, default=1e-12,
                         help="Cuttof on the range of relative probabilities kept during branch and bound search.")
@@ -87,14 +87,14 @@ if __name__ == "__main__":
     parser.set_defaults(pre=False)
     args = parser.parse_args()
 
-    ins = main(rot=args.r,
-               beta=args.b,
-               D=args.D,
-               M=args.M, relative_P_cutoff=args.P,
-               excitations_encoding=args.ee,
-               dE=args.dE, hd=args.hd,
-               max_states=args.max_st,
-               precondition=args.pre)
+    ins = minimal_RMF(rot=args.r,
+                      beta=args.b,
+                      D=args.D,
+                      M=args.M, relative_P_cutoff=args.P,
+                      excitations_encoding=args.ee,
+                      dE=args.dE, hd=args.hd,
+                      max_states=args.max_st,
+                      precondition=args.pre)
 
     ins.show_solution(state=False)
     print('Energies of the found low-energy states:')

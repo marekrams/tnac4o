@@ -167,7 +167,8 @@ class MPS:
             tolS (float): truncate smaller singular values during svd.
             tolV (float): condition for overlap convergence during one sweep.
             max_sweeps (int): maximal number of sweeps of variational compression.
-            graduate_truncation: performs 2 more rounds of SVD truncation decreesing bond dimension gradually, mixing it with variational sweep.
+            graduate_truncation: performs 2 more rounds of SVD truncation decreesing bond dimension gradually,
+                mixing it with variational sweep.
             verbose: to display convergence statistics.
 
         Returns:

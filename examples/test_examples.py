@@ -5,6 +5,7 @@ from e05_minimal_RMF import minimal_RMF
 
 
 def test_e01():
+    # expected energy for droplet instance 1 for L=128
     expected_energy = -210.933333
 
     ins = search_gs_droplet(rot=0, D=8, precondition=True)
@@ -21,6 +22,7 @@ def test_e02():
 
 
 def test_e03():
+    # expected number of states with dE<1 for droplet instance 1 for L=128
     expected_number_of_states = 31
     ins1 = search_spectrum_droplet(D=16, excitations_encoding=1, rot=1, precondition=False, dE=1.)
     ins2 = search_spectrum_droplet(D=16, excitations_encoding=2, rot=2, precondition=False, dE=1.)
@@ -40,6 +42,7 @@ def test_e03():
 
 
 def test_e05():
+    # expected number of states with dE<3.1 for this problem
     expected_number_of_states = 26
     ins0 = minimal_RMF(excitations_encoding=1, rot=0)
     ins1 = minimal_RMF(excitations_encoding=1, rot=1)

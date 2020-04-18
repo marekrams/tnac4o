@@ -66,7 +66,8 @@ def minimal_RMF(rot=0, beta=3,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-r", type=int, default=0,
-                        help="Rotate graph by 90 deg r times. Default is 0. Used to try to search/contract from different sides.")
+                        help="Rotate graph by 90 deg r times. Default is 0. \
+                              Used to try to search/contract from different sides.")
     parser.add_argument("-b", type=float, default=3,
                         help="Inverse temperature. Default is set at 3.")
     parser.add_argument("-D", type=int, default=32,
@@ -82,7 +83,8 @@ if __name__ == "__main__":
     parser.add_argument("-max_st", type=int, default=2**20,
                         help="Limit total number of low energy states which is being reconstructed.")
     parser.add_argument("-ee", type=int, default=1, choices=[1, 2, 3],
-                        help="Strategy used to compress droplets. For excitations_encoding = 2 or 3 small noise is added to the couplings slighly modyfings energies.")
+                        help="Strategy used to compress droplets. \
+                        For excitations_encoding = 2 or 3 small noise is added to the couplings slighly modyfings energies.")
     parser.add_argument('-pre', dest='pre', action='store_true', help="Do not use preconditioning.")
     parser.set_defaults(pre=False)
     args = parser.parse_args()

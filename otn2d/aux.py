@@ -98,7 +98,8 @@ def energy_RMF(J, states):
     Calculates cost function for bit_string for RMF.
 
     Args:
-        J (dict): dictionary encoding the cost function as factored graph on 2d rectangular lattice, see :meth:`otn2d.otn2d` for used conventions.
+        J (dict): dictionary encoding the cost function as factored graph on 2d rectangular lattice,
+            see :meth:`otn2d.otn2d` for used conventions.
         states (nparray): configurations
 
     Returns:

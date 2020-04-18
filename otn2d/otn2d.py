@@ -69,10 +69,13 @@ class otn2d:
         mode (str):
             ``'Ising'`` assumes Ising-type representation of the problem
             with the cost function :math:`E(s) = \sum_{i<j} J_{ij} s_i s_j + \sum_i J_{ii} s_i`.
-            The couplings :math:`J_{ij}` form a 2d rectangular :math:`N_x \times N_y` lattice of elementary cells with :math:`N_c` spins in each cell.
-            Allowed interactions include any couplings within clusters and couplings between spins in nearest-neighbor clusters.
+            The couplings :math:`J_{ij}` form a 2d rectangular :math:`N_x \times N_y` lattice 
+            of elementary cells with :math:`N_c` spins in each cell.
+            Allowed interactions include any couplings within clusters and 
+            couplings between spins in nearest-neighbor clusters.
 
-            Spin index :math:`i = k N_x N_c+l N_c+m`, with :math:`k=0,1,\ldots,N_y-1`, :math:`l=0,1,\ldots,N_x-1`, :math:`m=0,1,\ldots,N_c-1` (zero-based indexing is used).
+            Spin index :math:`i = k N_x N_c+l N_c+m`, with :math:`k=0,1,\ldots,N_y-1`, 
+            :math:`l=0,1,\ldots,N_x-1`, :math:`m=0,1,\ldots,N_c-1` (zero-based indexing is used).
             PEPS tensor corresponding to a given cluster is generated explicitly; hence :math:`N_c` cannot be too large.
             The exact value depends on :math:`N_c` itself, as well as the number of interacting spins between clusters.
 
@@ -80,7 +83,8 @@ class otn2d:
             They are not taken into account during the search.
 
             ``'RMF'`` assumes a Random Markov Field type model on a 2d rectangular :math:`N_y \times N_x` lattice
-            with cost function :math:`E = \sum_{\langle i,j \rangle} E(s_i, s_j) + \sum_i E(s_i)` and nearest-neighbour interactions only.
+            with cost function :math:`E = \sum_{\langle i,j \rangle} E(s_i, s_j) + \sum_i E(s_i)` 
+            and nearest-neighbour interactions only.
 
         ints Nx, Ny, Nc : lattice shape.
         beta (float): sets the inverse temperature used during the search.
@@ -89,12 +93,15 @@ class otn2d:
         J (others): couplings.
             For mode ``'Ising'``, it should be a list of :math:`[i, j, J_{ij}]`.
             For mode ``'RMF'``, it should be a dictionary with fields\:
-            'fun' (a dictionary of possible matrices :math:`E(s_i, s_j)` and :math:`E(s_i)` ), 'fac' (a dictionary with indices (n1y,n1x,n2y,n2x) or
-            (ny,nx) matching the interacting nearest-neighbour lattice sites with respective elements of 'fun'. 'N' is an :math:`N_y \times N_x` nparray of int with variable ranges.
+            'fun' (a dictionary of possible matrices :math:`E(s_i, s_j)` and :math:`E(s_i)` ), 
+            'fac' (a dictionary with indices (n1y,n1x,n2y,n2x) or
+            (ny,nx) matching the interacting nearest-neighbour lattice sites with 
+            respective elements of 'fun'. 'N' is an :math:`N_y \times N_x` nparray of int with variable ranges.
 
     Examples:
         ins = otn2d.otn2d(mode='Ising', Nx=16, Ny=16, Nc=8, beta=beta, J=J) initialises a model which 
-        includes interactions of a chimera graph C16 with 2048 spins, see e.g., https://docs.dwavesys.com/docs/latest/c_gs_4.html
+        includes interactions of a chimera graph C16 with 2048 spins, 
+        see e.g., https://docs.dwavesys.com/docs/latest/c_gs_4.html
 
     Returns:
         Obtained results are stored as instance attributes (see below).
@@ -108,12 +115,15 @@ class otn2d:
         discarded_probability: log2 of the largest probability discarded during the search.
         negative_probability: a potential red flag.
             Takes values in [-1,0].
-            A negative value means that some conditional probabilities calculated from tensor network contraction were negative.
+            A negative value means that some conditional probabilities 
+            calculated from tensor network contraction were negative.
             This indicates that the contraction was not fully numerically stable.
             The worst case is shown.
-            The value shows the ratio of negative and positive conditional probabilities for one cluster and partial configuration.
+            The value shows the ratio of negative and positive conditional 
+            probabilities for one cluster and partial configuration.
         logger: logger
-        excitations_encoding: if the low-energy spectrum was searched, this is the index of the merging strategy, which was used.
+        excitations_encoding: if the low-energy spectrum was searched,
+        this is the index of the merging strategy, which was used.
         el: tree representing the hierarchy of droplets, as obtained during merging.
         d: dictionary of droplets' shapes.
     """
@@ -161,7 +171,8 @@ class otn2d:
                 for ny in range(self.Ny_model):
                     for nx in range(self.Nx_model):
                         ind = self.Nc * (self.Nx_model * ny + nx) + np.arange(self.Nc)
-                        Jsum = np.sum(np.abs(self.J[ind, :].toarray()), axis=1) + np.sum(np.abs(self.J[:, ind].toarray()), axis=0)
+                        Jsum = np.sum(np.abs(self.J[ind, :].toarray()), axis=1) + \
+                               np.sum(np.abs(self.J[:, ind].toarray()), axis=0)
                         self.ind0[ny][nx] = ind[np.nonzero(Jsum > 1e-12)]
                         self.active += len(self.ind0[ny][nx])
             elif self.mode == 'RMF':
@@ -346,8 +357,10 @@ class otn2d:
                 self.beta = beta_cond[nn]
                 self.logger.info('Preconditioning with beta = %.2f', self.beta)
                 keep_time = time.time()
-                #self._update_conditioning(direction='lr', Dmax=Dmax_cond[nn], graduate_truncation=graduate_truncation, tolS=tolS, tolV=tolV, max_sweeps=max_sweeps, max_scale=max_scale)
-                self._update_conditioning(direction='ud', Dmax=Dmax_cond[nn], graduate_truncation=graduate_truncation, tolS=tolS, tolV=tolV, max_sweeps=max_sweeps, max_scale=max_scale)
+                #self._update_conditioning(direction='lr', Dmax=Dmax_cond[nn], graduate_truncation=graduate_truncation,
+                #                          tolS=tolS, tolV=tolV, max_sweeps=max_sweeps, max_scale=max_scale)
+                self._update_conditioning(direction='ud', Dmax=Dmax_cond[nn], graduate_truncation=graduate_truncation,
+                                          tolS=tolS, tolV=tolV, max_sweeps=max_sweeps, max_scale=max_scale)
                 self.logger.info('Elapsed: %.2f seconds', time.time() - keep_time)
             self.beta = main_beta
 
@@ -365,7 +378,8 @@ class otn2d:
 
         Args:
             M (int): maximal number of branches (partial configurations) that are kept during the search.
-            relative_P_cutoff (float): do not keep branches with a probability smaller by that factor comparing with most probable one.
+            relative_P_cutoff (float): do not keep branches with a probability 
+                smaller by that factor comparing with most probable one.
             min_dEng (float): precision below which two states (perhaps partial) are considered to have the same energy.
             graduate_truncation (boolen): more gradually truncates boundary MPS. Might be more precise, but slower.
             Dmax (int): maximal bond dimensions used in boundary MPS.
@@ -417,7 +431,8 @@ class otn2d:
                 for kk in range(cons_states):
                     tind = tuple(vind[kk])
                     AA = W[:, tind[nx], :, :, tind[nx+1]]
-                    newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]], self.rhoT[ny+1].A[nx], RRl[self.Nx-nx-1][tind[nx+2:]] )
+                    newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]], self.rhoT[ny+1].A[nx],
+                                                                  RRl[self.Nx-nx-1][tind[nx+2:]] )
 
                 newprob = np.log2(newprob)
                 # use conditional probability to calculate probability of partial configuration
@@ -580,7 +595,8 @@ class otn2d:
                     else:   # calculate conditional probability
                         seen[tind] = kk
                         AA = W[:, tind[nx], :, :, tind[nx+1]]
-                        newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]], self.rhoT[ny+1].A[nx], RRl[self.Nx-nx-1][tind[nx+2:]])
+                        newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]],
+                                                                      self.rhoT[ny+1].A[nx], RRl[self.Nx-nx-1][tind[nx+2:]])
 
                 minprob = np.min(minprob)  # np.min(newprob)#
                 maxprob = np.max(newprob)  # np.min(newprob)#
@@ -632,7 +648,8 @@ class otn2d:
         Searches for low-energy spectrum on a quasi-2d graph.
 
         Merge matching configurations during branch-and-bound search going line by line (:math:`n_y=0:N_y-1`).
-        Information about excited states (droplets) is collected during merging, which allows reconstructing the low-energy spectrum.
+        Information about excited states (droplets) is collected during merging,
+        which allows reconstructing the low-energy spectrum.
         It keeps track of GS degeneracy, distinguishing different energies with precision min_dEng.
         Probabilities kept as log2. Results are stored as instance attributes.
 
@@ -651,9 +668,12 @@ class otn2d:
                 might be lost when merging configurations with many layers of the excitation hierarchy.
 
                 ``3`` As in ``2`` but excitations are compressed to one layer of hierarchy.
-                It is useful only for problems with a single basin of attraction and low-energy excitations of small sizes but retains a one-to-one correspondence between the low-energy spectrum and the stored excitation structure.
+                It is useful only for problems with a single basin of attraction and low-energy excitations 
+                of small sizes but retains a one-to-one correspondence between the low-energy spectrum 
+                and the stored excitation structure.
             M (int): maximal number of branches (partial configurations) that are kept during the search.
-            relative_P_cutoff (float): do not keep branches with a probability smaller by that factor comparing with most probable one.
+            relative_P_cutoff (float): do not keep branches with a probability 
+                smaller by that factor comparing with most probable one.
             max_dEng (float): maximal excitation energy being targeted.
             lim_hd (int): Lower limit of Hamming distance between states (while merging). Outputs fewer states.
             min_dEng (float): precision below which two states (perhaps partial) are considered to have the same energy.
@@ -715,7 +735,8 @@ class otn2d:
         #  Initilise
         vind = np.zeros((1, self.Nx+1), dtype=self.indtype)  # virtual indices from partial configurations
         states = np.zeros((1, self.Nx*self.Ny), dtype=self.indtype)  # (partial) spin configurations
-        Eng, prob, deg = np.zeros(1), np.zeros(1), np.ones(1, dtype=int)  # energies / probabilities / deg of partial configurations
+        # energies / probabilities / deg of partial configurations
+        Eng, prob, deg = np.zeros(1), np.zeros(1), np.ones(1, dtype=int)
         pd_max, globalmin = -np.inf, 1.  # largest discarded probability, smallest calculated prob
         self._exc_initialise()
 
@@ -736,11 +757,12 @@ class otn2d:
                 for kk in range(cons_states):
                     tind = tuple(vind[kk])
                     AA = W[:, tind[nx], :, :, tind[nx+1]]
-                    newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]], self.rhoT[ny+1].A[nx], RRl[self.Nx-nx-1][tind[nx+2:]])
+                    newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]],
+                                                                  self.rhoT[ny+1].A[nx], RRl[self.Nx-nx-1][tind[nx+2:]])
 
                 newprob = np.log2(newprob)
                 # use conditional probability to calculate probability of partial configuration
-                newprob += prob[:, np.newaxis]  # use conditional probability to calculate probability of partial configuration
+                newprob += prob[:, np.newaxis]
                 prob = np.reshape(newprob, cons_states*block_states)
                 minprob = np.min(minprob)
 
@@ -883,7 +905,8 @@ class otn2d:
         r"""
         Adds a small random noise to the couplings stored in the class.
 
-        It should be used to remove accidental degeneracies while searching for low-energy configurations using 'excitations_encoding' 2 or 3.
+        It should be used to remove accidental degeneracies while searching 
+        for low-energy configurations using 'excitations_encoding' 2 or 3.
 
         Args:
             amplitude (float): the amplitude of the random noise.
@@ -928,7 +951,8 @@ class otn2d:
         #  Initilise
         vind = np.zeros((1, self.Nx+1), dtype=self.indtype)  # virtual indices from partial configurations
         states = np.zeros((1, self.Nx*self.Ny), dtype=self.indtype)  # (partial) spin configurations
-        Eng, prob, deg = np.zeros(1), np.zeros(1), np.ones(1, dtype=int)  # energies / probabilities / deg of partial configurations
+        # energies / probabilities / deg of partial configurations
+        Eng, prob, deg = np.zeros(1), np.zeros(1), np.ones(1, dtype=int)
         pd_max, globalmin = -np.inf, 1.  # largest discarded probability, smallest calculated prob
         self._exc_initialise()  # initialise structure to keep excitations
         self._reset_adj(J=self.J, Nx=self.Nx, Ny=self.Ny, ind=self.ind)
@@ -950,11 +974,12 @@ class otn2d:
                 for kk in range(cons_states):
                     tind = tuple(vind[kk])
                     AA = W[:, tind[nx], :, :, tind[nx+1]]
-                    newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]], self.rhoT[ny+1].A[nx], RRl[self.Nx-nx-1][tind[nx+2:]])
+                    newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]],
+                                                                  self.rhoT[ny+1].A[nx], RRl[self.Nx-nx-1][tind[nx+2:]])
 
                 newprob = np.log2(newprob)
                 # use conditional probability to calculate probability of partial configuration
-                newprob += prob[:, np.newaxis]  # use conditional probability to calculate probability of partial configuration
+                newprob += prob[:, np.newaxis]
                 prob = np.reshape(newprob, cons_states*block_states)
                 minprob = np.min(minprob)
 
@@ -1068,7 +1093,8 @@ class otn2d:
                 RLl = RLnew
                 # self.logger.info('Prob: min/ min kept/ max: %0.2e / %0.2e / %0.2e ', minprob, np.min(prob), maxprob)
                 self._exc_clear_d()
-                globalmin = min(globalmin, minprob)  # collects information on smallest encountered probability (negative indicate error)
+                # collects information on smallest encountered probability (negative indicate error)
+                globalmin = min(globalmin, minprob)
             self.logger.info('Elapsed: %.2f seconds', time.time() - keep_time)
             vind[:, 1:] = vind[:, :-1]  # reset vind before going to next layer
             vind[:, 0] = 0  # by shifting the one corresponding to "central" bond to begining
@@ -1117,7 +1143,8 @@ class otn2d:
         #Initilise
         vind       = np.zeros((1, self.Nx+1), dtype = self.indtype)  # virtual indices from partial configurations
         states     = np.zeros((1, self.Nx*self.Ny), dtype = self.indtype) # (partial) spin configurations
-        Eng, prob, deg = np.zeros(1), np.zeros(1), np.ones(1, dtype = int)  # energies / probabilities / deg of partial configurations
+        # energies / probabilities / deg of partial configurations
+        Eng, prob, deg = np.zeros(1), np.zeros(1), np.ones(1, dtype = int)
         pd_max, globalmin = -np.inf, 1.   # largest discarded probability, smallest calculated prob
         self._exc_initialise() ## initialise structure to keep excitations
         self._reset_adj(J=self.J, Nx=self.Nx, Ny=self.Ny, ind=self.ind)
@@ -1139,11 +1166,12 @@ class otn2d:
                 for kk in range(cons_states):
                     tind = tuple(vind[kk])
                     AA = W[:, tind[nx], :, :, tind[nx+1]]
-                    newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]], self.rhoT[ny+1].A[nx], RRl[self.Nx-nx-1][tind[nx+2:]] )
+                    newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]],
+                                                                  self.rhoT[ny+1].A[nx], RRl[self.Nx-nx-1][tind[nx+2:]])
 
                 newprob = np.log2(newprob)
                 # use conditional probability to calculate probability of partial configuration
-                newprob += prob[:, np.newaxis]  # use conditional probability to calculate probability of partial configuration
+                newprob += prob[:, np.newaxis]
                 prob = np.reshape(newprob, cons_states*block_states)
                 minprob = np.min(minprob)
 
@@ -1238,7 +1266,7 @@ class otn2d:
                                 substate = (dpos, dstate)
                                 for sdi in sflip[nn]:
                                     substate = self._exc_merge(substate, sdi)
-                                if (lim_hd <= 1 or self._exc_hd(substate[1]) >= lim_hd) and self._exc_elementary(substate): # and excs.overlap2(dstate, sne[0][1]):
+                                if (lim_hd <= 1 or self._exc_hd(substate[1]) >= lim_hd) and self._exc_elementary(substate):
                                     sdi = self._exc_add_to_d(*substate)
                                     new_bel.append( ((sEng[nn] + conf_dEng, sdi), ()) )
                     new_bel = sorted(new_bel, key=lambda x: x[0][0]) # sorted by energy
@@ -1274,7 +1302,8 @@ class otn2d:
                         RLnew[tind] = tempR
                 RLl = RLnew
                 # self.logger.info('Prob: min/ min kept/ max: %0.2e / %0.2e / %0.2e ', minprob, np.min(prob), maxprob)
-                globalmin = min(globalmin, minprob)  ## collects information on smallest encountered probability (negative indicate error)
+                ## collects information on smallest encountered probability (negative indicate error)
+                globalmin = min(globalmin, minprob)
             self._exc_clear_d()
             self.logger.info('Elapsed: %.2f seconds', time.time() - keep_time)
             vind[:, 1:] = vind[:, :-1]  ## reset vind before going to next layer
@@ -1366,7 +1395,8 @@ class otn2d:
             for ny in range(self.Ny):
                 for nx in range(self.Nx):
                     ind  =  self.Nc * (self.Nx * ny + nx) + np.arange(self.Nc)
-                    Jsum =  np.sum(np.abs(self.J[ind,:].toarray()), axis = 1) + np.sum(np.abs(self.J[:,ind].toarray()), axis = 0)
+                    Jsum =  np.sum(np.abs(self.J[ind,:].toarray()), axis = 1) + \
+                            np.sum(np.abs(self.J[:,ind].toarray()), axis = 0)
                     self.ind[ny][nx] = ind[np.nonzero(Jsum > 1e-12)]
                     self.N[ny][nx] = 2**len(self.ind[ny][nx])
                     self.sN[ny][nx] = len(self.ind[ny][nx])
@@ -1469,7 +1499,8 @@ class otn2d:
         """
         if self.mode == 'Ising':
             st  = 2*self._cluster_configurations(self.sN[ny][nx])-1
-            Es  = 1.*np.sum(np.dot(st, np.triu(self.Jin[ny][nx], 1)) * st, 1) + np.dot(st, self.Jin[ny][nx].diagonal())  # inner cluster energy
+            Es  = 1.*np.sum(np.dot(st, np.triu(self.Jin[ny][nx], 1)) * st, 1) + \
+                     np.dot(st, self.Jin[ny][nx].diagonal())  # inner cluster energy
 
             pos = ny*self.Nx+nx        # position of cluster
             dEng = Es[states[:, pos]]  # add energy of cluster for every configuration
@@ -1646,7 +1677,10 @@ class otn2d:
                 At.set_direct(W, nx)
             self.rhoT[ny] = self.rhoT[ny+1].copy()
             self.rhoT[ny].apply_mpo(At, Hconj = True)
-            self.rhoT_overlap[ny] = self.rhoT[ny].compress_mps(Dmax=Dmax, tolS=tolS, tolV=tolV, max_sweeps=max_sweeps, graduate_truncation=graduate_truncation, verbose=False)
+            self.rhoT_overlap[ny] = self.rhoT[ny].compress_mps(Dmax=Dmax, tolS=tolS, tolV=tolV,
+                                                               max_sweeps=max_sweeps, 
+                                                               graduate_truncation=graduate_truncation, 
+                                                               verbose=False)
             self.rhoT_discarded[ny] = max(self.rhoT[ny].discarded)
             #self.rhoT[ny].normC = 1.0
 
@@ -1666,7 +1700,10 @@ class otn2d:
                 At.set_direct(W, nx)
             self.rhoB[ny+1] = self.rhoB[ny].copy()
             self.rhoB[ny+1].apply_mpo(At, Hconj = False)
-            self.rhoB_overlap[ny+1] = self.rhoB[ny+1].compress_mps(Dmax=Dmax, tolS=tolS, tolV=tolV, max_sweeps=max_sweeps, graduate_truncation=graduate_truncation, verbose=False)
+            self.rhoB_overlap[ny+1] = self.rhoB[ny+1].compress_mps(Dmax=Dmax, tolS=tolS, tolV=tolV,
+                                                                   max_sweeps=max_sweeps, 
+                                                                   graduate_truncation=graduate_truncation, 
+                                                                   verbose=False)
             self.rhoB_discarded[ny+1] = max(self.rhoB[ny+1].discarded)
             #self.rhoB[ny+1].normC = 1.0
 
@@ -1687,7 +1724,10 @@ class otn2d:
                 At.set_direct(W, ny)
             self.rhoL[nx+1] = self.rhoL[nx].copy()
             self.rhoL[nx+1].apply_mpo(At, Hconj = True)
-            self.rhoL_overlap[nx+1] = self.rhoL[nx+1].compress_mps(Dmax=Dmax, tolS=tolS, tolV=tolV, max_sweeps=max_sweeps, graduate_truncation=graduate_truncation, verbose=False)
+            self.rhoL_overlap[nx+1] = self.rhoL[nx+1].compress_mps(Dmax=Dmax, tolS=tolS, tolV=tolV,
+                                                                   max_sweeps=max_sweeps,
+                                                                   graduate_truncation=graduate_truncation,
+                                                                   verbose=False)
             self.rhoL_discarded[nx+1] = max(self.rhoL[nx+1].discarded)
             #self.rhoL[nx+1].normC = 1.0
 
@@ -1708,7 +1748,10 @@ class otn2d:
                 At.set_direct(W, ny)
             self.rhoR[nx] = self.rhoR[nx+1].copy()
             self.rhoR[nx].apply_mpo(At, Hconj = False)
-            self.rhoR_overlap[nx] = self.rhoR[nx].compress_mps(Dmax=Dmax, tolS=tolS, tolV=tolV, max_sweeps=max_sweeps, graduate_truncation=graduate_truncation, verbose=False)
+            self.rhoR_overlap[nx] = self.rhoR[nx].compress_mps(Dmax=Dmax, tolS=tolS, tolV=tolV,
+                                                               max_sweeps=max_sweeps,
+                                                               graduate_truncation=graduate_truncation,
+                                                               verbose=False)
             self.rhoR_discarded[nx] = max(self.rhoR[nx].discarded)
             #self.rhoR[nx].normC = 1.0
 
@@ -1768,7 +1811,8 @@ class otn2d:
         # here they are associated with legs of peps tensor A[ny][nx]
         # corresponding Xu, Xd; and Xl, Xr should combine to identity
 
-    def _update_conditioning(self, direction='ud', graduate_truncation=False, Dmax=8, tolS=1e-16, tolV=1e-10, max_sweeps=4, max_scale=1024):
+    def _update_conditioning(self, direction='ud', graduate_truncation=False, Dmax=8,
+                             tolS=1e-16, tolV=1e-10, max_sweeps=4, max_scale=1024):
         r"""
         A sweep searching for conditioning using balancing heuristics.
         """
@@ -1974,7 +2018,8 @@ class otn2d:
                 for nx in range(Nx):
                     Nc = len(ind[ny][nx])
                     decode = self._cluster_configurations(Nc)
-                    decode = 1-decode #[:,::-1]   ## has to be consistent with cluster_configurations -- but replace 0 <--> 1
+                    # has to be consistent with cluster_configurations -- but replace 0 <--> 1
+                    decode = 1-decode #[:,::-1]
                     decode = decode.astype(dtype = bool, copy = False)
                     xor2ind_cluster = []
                     for ii in range(2**Nc):
@@ -2248,13 +2293,14 @@ class otn2d:
         #Pn   = [1.0]
         flip  = [[]]
         #ne = ((conf_dEng, di, first, last, dP),  tuple(sel))
-        excs = [[ ((0, 0, -1, self.Nx_model*self.Ny_model-1, 1), tuple(el)) ]]  ## excitations corresponding to the branch with Eng = [0.0] -- i.e. at the last site
+        # excitations corresponding to the branch with Eng = [0.0] -- i.e. at the last site
+        excs = [[ ((0, 0, -1, self.Nx_model*self.Ny_model-1, 1), tuple(el)) ]]
 
         for nn in range(self.Nx_model*self.Ny_model-1, -1, -1):
             kk = 0
             while kk < len(Eng):
                 for ee in excs[kk][-1][1]:
-                    if (ee[0][3] == nn) and (Eng[kk] + ee[0][0]) <= max_dEng :  ## expand ee[0][3] = ee.last; ee[0][0] = dEng
+                    if (ee[0][3] == nn) and (Eng[kk] + ee[0][0]) <= max_dEng :
                         Eng.append(Eng[kk] + ee[0][0])
                         #Pn.append(Pn[kk] * ee[0][4]) # ee[0][4] = dP
                         newflip = flip[kk][:]
@@ -2303,7 +2349,8 @@ class otn2d:
                         flip.append( newflip )  ## ee[0][1] -> shape of exc from dict
                         newexc = []
                         for xx in excs[kk]:
-                            if not self._exc_overlap(xx[0][1], exc[0][1]): ## in l1 keep only interactions which are independent
+                            if not self._exc_overlap(xx[0][1], exc[0][1]):
+                                ## in l1 keep only interactions which are independent
                                 newexc.append(xx)
                         excs.append(newexc)
                         if not one_layer:

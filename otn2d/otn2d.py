@@ -347,7 +347,7 @@ class otn2d:
             graduate_truncation (boolen): more gradually truncates boundary MPS. Might be more precise, but slower.
             max_sweeps (int): maximal number of sweeps of variational compression.
         """
-        if mode is 'balancing':
+        if mode == 'balancing':
             if not beta_cond:
                 beta_cond = [self.beta * 2.**(nn-steps) for nn in range(steps)]
             if not Dmax_cond:

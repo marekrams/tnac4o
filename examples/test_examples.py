@@ -16,6 +16,8 @@ def test_e01():
 
     ins = search_gs_droplet(rot=3, D=8, precondition=False)
     assert(abs(expected_energy - ins.energy[0]) < 1e-6)
+    
+    assert(False)
 
 
 def test_e02():

@@ -711,7 +711,7 @@ class MPS:
         AA = self._mps_AA(A1, A2)
         AAc = self._mps_AA(A1c, A2c)
         d1, d2 = A1.shape[1], A2.shape[1]
-        OO = np.reshape(O, [d1 * d2, d1 * d2])
+        OO = np.reshape(OO, [d1 * d2, d1 * d2])
         T1 = np.tensordot(RL, AA, axes=(1, 0))
         T2 = np.tensordot(T1, RR, axes=(2, 0))
         T3 = np.tensordot(T2, OO, axes=(1, 1))

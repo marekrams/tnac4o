@@ -69,12 +69,12 @@ class otn2d:
         mode (str):
             ``'Ising'`` assumes Ising-type representation of the problem
             with the cost function :math:`E(s) = \sum_{i<j} J_{ij} s_i s_j + \sum_i J_{ii} s_i`.
-            The couplings :math:`J_{ij}` form a 2d rectangular :math:`N_x \times N_y` lattice 
+            The couplings :math:`J_{ij}` form a 2d rectangular :math:`N_x \times N_y` lattice
             of elementary cells with :math:`N_c` spins in each cell.
-            Allowed interactions include any couplings within clusters and 
+            Allowed interactions include any couplings within clusters and
             couplings between spins in nearest-neighbor clusters.
 
-            Spin index :math:`i = k N_x N_c+l N_c+m`, with :math:`k=0,1,\ldots,N_y-1`, 
+            Spin index :math:`i = k N_x N_c+l N_c+m`, with :math:`k=0,1,\ldots,N_y-1`,
             :math:`l=0,1,\ldots,N_x-1`, :math:`m=0,1,\ldots,N_c-1` (zero-based indexing is used).
             PEPS tensor corresponding to a given cluster is generated explicitly; hence :math:`N_c` cannot be too large.
             The exact value depends on :math:`N_c` itself, as well as the number of interacting spins between clusters.
@@ -83,7 +83,7 @@ class otn2d:
             They are not taken into account during the search.
 
             ``'RMF'`` assumes a Random Markov Field type model on a 2d rectangular :math:`N_y \times N_x` lattice
-            with cost function :math:`E = \sum_{\langle i,j \rangle} E(s_i, s_j) + \sum_i E(s_i)` 
+            with cost function :math:`E = \sum_{\langle i,j \rangle} E(s_i, s_j) + \sum_i E(s_i)`
             and nearest-neighbour interactions only.
 
         ints Nx, Ny, Nc : lattice shape.
@@ -93,14 +93,14 @@ class otn2d:
         J (others): couplings.
             For mode ``'Ising'``, it should be a list of :math:`[i, j, J_{ij}]`.
             For mode ``'RMF'``, it should be a dictionary with fields\:
-            'fun' (a dictionary of possible matrices :math:`E(s_i, s_j)` and :math:`E(s_i)` ), 
+            'fun' (a dictionary of possible matrices :math:`E(s_i, s_j)` and :math:`E(s_i)` ),
             'fac' (a dictionary with indices (n1y,n1x,n2y,n2x) or
-            (ny,nx) matching the interacting nearest-neighbour lattice sites with 
+            (ny,nx) matching the interacting nearest-neighbour lattice sites with
             respective elements of 'fun'. 'N' is an :math:`N_y \times N_x` nparray of int with variable ranges.
 
     Examples:
-        ins = otn2d.otn2d(mode='Ising', Nx=16, Ny=16, Nc=8, beta=beta, J=J) initialises a model which 
-        includes interactions of a chimera graph C16 with 2048 spins, 
+        ins = otn2d.otn2d(mode='Ising', Nx=16, Ny=16, Nc=8, beta=beta, J=J) initialises a model which
+        includes interactions of a chimera graph C16 with 2048 spins,
         see e.g., https://docs.dwavesys.com/docs/latest/c_gs_4.html
 
     Returns:
@@ -115,11 +115,11 @@ class otn2d:
         discarded_probability: log2 of the largest probability discarded during the search.
         negative_probability: a potential red flag.
             Takes values in [-1,0].
-            A negative value means that some conditional probabilities 
+            A negative value means that some conditional probabilities
             calculated from tensor network contraction were negative.
             This indicates that the contraction was not fully numerically stable.
             The worst case is shown.
-            The value shows the ratio of negative and positive conditional 
+            The value shows the ratio of negative and positive conditional
             probabilities for one cluster and partial configuration.
         logger: logger
         excitations_encoding: if the low-energy spectrum was searched,
@@ -148,15 +148,15 @@ class otn2d:
             self.indtype = np.int8
             self.ind = []
 
-        self.L = Nx*Ny*Nc
-        self.order = np.arange(self.Nx*self.Ny)  # order of clusters
-        self.order_i = np.arange(self.Nx*self.Ny)  # inverse order of clusters
+        self.L = Nx * Ny * Nc
+        self.order = np.arange(self.Nx * self.Ny)  # order of clusters
+        self.order_i = np.arange(self.Nx * self.Ny)  # inverse order of clusters
         self.logger = logging.getLogger('otn2d')
         self.energy = np.zeros(0)
         self.probability = np.zeros(0)
         self.rotation = 0
         self.degeneracy = 0
-        self.states = np.zeros((0, Nx*Ny), dtype=self.indtype)
+        self.states = np.zeros((0, Nx * Ny), dtype=self.indtype)
         if J is not None:
             if self.mode == 'Ising':
                 ii, jj, vv = zip(*J)
@@ -166,13 +166,13 @@ class otn2d:
                 # makes sure that J is float
                 self.J = self.J.astype(dtype=float, copy=False)
                 self.active = 0  # number of active spins
-                self.ind0 = [[0]*self.Nx for _ in range(self.Ny)]
+                self.ind0 = [[0] * self.Nx for _ in range(self.Ny)]
                 self.J0 = self.J.copy()
                 for ny in range(self.Ny_model):
                     for nx in range(self.Nx_model):
                         ind = self.Nc * (self.Nx_model * ny + nx) + np.arange(self.Nc)
                         Jsum = np.sum(np.abs(self.J[ind, :].toarray()), axis=1) + \
-                               np.sum(np.abs(self.J[:, ind].toarray()), axis=0)
+                            np.sum(np.abs(self.J[:, ind].toarray()), axis=0)
                         self.ind0[ny][nx] = ind[np.nonzero(Jsum > 1e-12)]
                         self.active += len(self.ind0[ny][nx])
             elif self.mode == 'RMF':
@@ -288,11 +288,11 @@ class otn2d:
                 order_i = np.arange(self.Nx * self.Ny)
                 for nx in range(self.Nx):
                     for ny in range(self.Ny):
-                        ii = ny*self.Nc*self.Nx + nx*self.Nc + np.arange(self.Nc)
-                        jj = (self.Nx - nx - 1)*self.Nc*self.Ny + ny*self.Nc + np.arange(self.Nc)
+                        ii = ny * self.Nc * self.Nx + nx * self.Nc + np.arange(self.Nc)
+                        jj = (self.Nx - nx - 1) * self.Nc * self.Ny + ny * self.Nc + np.arange(self.Nc)
                         order_full[ii] = jj
-                        ii = ny*self.Nx + nx
-                        jj = (self.Nx - nx - 1)*self.Ny + ny
+                        ii = ny * self.Nx + nx
+                        jj = (self.Nx - nx - 1) * self.Ny + ny
                         order[ii], order_i[jj] = jj, ii
                 self.Nx, self.Ny = self.Ny, self.Nx
                 self.J = self.J[order_full, :][:, order_full]
@@ -306,15 +306,15 @@ class otn2d:
                 for key in self.J['fac']:
                     if len(key) == 2:
                         ny, nx = key
-                        fact_new[(self.Nx-nx-1, ny)] = self.J['fac'][(ny, nx)]
+                        fact_new[(self.Nx - nx - 1, ny)] = self.J['fac'][(ny, nx)]
                     elif len(key) == 4:
                         ny1, nx1, ny2, nx2 = key
-                        fact_new[(self.Nx-nx1-1, ny1, self.Nx-nx2-1, ny2)] = self.J['fac'][(ny1, nx1, ny2, nx2)]
+                        fact_new[(self.Nx - nx1 - 1, ny1, self.Nx - nx2 - 1, ny2)] = self.J['fac'][(ny1, nx1, ny2, nx2)]
                 for nx in range(self.Nx):
                     for ny in range(self.Ny):
-                        N_new[self.Nx-nx-1, ny] = self.N[ny, nx]
-                        ii = ny*self.Nx + nx
-                        jj = (self.Nx-nx-1)*self.Ny + ny
+                        N_new[self.Nx - nx - 1, ny] = self.N[ny, nx]
+                        ii = ny * self.Nx + nx
+                        jj = (self.Nx - nx - 1) * self.Ny + ny
                         order_i[ii] = jj
                 self.Nx, self.Ny = self.Ny, self.Nx
                 self.order = order_i[self.order]
@@ -349,7 +349,7 @@ class otn2d:
         """
         if mode == 'balancing':
             if not beta_cond:
-                beta_cond = [self.beta * 2.**(nn-steps) for nn in range(steps)]
+                beta_cond = [self.beta * 2.**(nn - steps) for nn in range(steps)]
             if not Dmax_cond:
                 Dmax_cond = [8] * len(beta_cond)  # default D for conditioning is 8
             main_beta = self.beta
@@ -357,7 +357,7 @@ class otn2d:
                 self.beta = beta_cond[nn]
                 self.logger.info('Preconditioning with beta = %.2f', self.beta)
                 keep_time = time.time()
-                #self._update_conditioning(direction='lr', Dmax=Dmax_cond[nn], graduate_truncation=graduate_truncation,
+                # self._update_conditioning(direction='lr', Dmax=Dmax_cond[nn], graduate_truncation=graduate_truncation,
                 #                          tolS=tolS, tolV=tolV, max_sweeps=max_sweeps, max_scale=max_scale)
                 self._update_conditioning(direction='ud', Dmax=Dmax_cond[nn], graduate_truncation=graduate_truncation,
                                           tolS=tolS, tolV=tolV, max_sweeps=max_sweeps, max_scale=max_scale)
@@ -378,7 +378,7 @@ class otn2d:
 
         Args:
             M (int): maximal number of branches (partial configurations) that are kept during the search.
-            relative_P_cutoff (float): do not keep branches with a probability 
+            relative_P_cutoff (float): do not keep branches with a probability
                 smaller by that factor comparing with most probable one.
             min_dEng (float): precision below which two states (perhaps partial) are considered to have the same energy.
             graduate_truncation (boolen): more gradually truncates boundary MPS. Might be more precise, but slower.
@@ -403,9 +403,9 @@ class otn2d:
 
         # Initilise
         # virtual indices from partial configurations
-        vind = np.zeros((1, self.Nx+1), dtype=self.indtype)
+        vind = np.zeros((1, self.Nx + 1), dtype=self.indtype)
         # (partial) spin configurations
-        states = np.zeros((1, self.Nx*self.Ny), dtype=self.indtype)
+        states = np.zeros((1, self.Nx * self.Ny), dtype=self.indtype)
         # energies / probabilities / deg of partial configurations
         Eng, prob, deg = np.zeros(1), np.zeros(1), np.ones(1, dtype=int)
         # largest discarded probability, smallest calculated prob
@@ -415,7 +415,7 @@ class otn2d:
         self.logger.info('Searching ... ')
         for ny in range(self.Ny):  # consider row ny
             keep_time = time.time()
-            self.logger.info('Row %d / %d', ny+1, self.Ny)
+            self.logger.info('Row %d / %d', ny + 1, self.Ny)
 
             # setup right environments to calculate prob
             RRl = self._setup_RR(vind, ny)
@@ -426,18 +426,18 @@ class otn2d:
                 block_states, cons_states = self.N[ny][nx], prob.size
 
                 W = self._peps_tensor(ny, nx)  # PEPS tensor
-                newprob = np.zeros((cons_states,  block_states))
+                newprob = np.zeros((cons_states, block_states))
                 minprob = np.zeros(cons_states)
                 for kk in range(cons_states):
                     tind = tuple(vind[kk])
-                    AA = W[:, tind[nx], :, :, tind[nx+1]]
-                    newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]], self.rhoT[ny+1].A[nx],
-                                                                  RRl[self.Nx-nx-1][tind[nx+2:]] )
+                    AA = W[:, tind[nx], :, :, tind[nx + 1]]
+                    newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]], self.rhoT[ny + 1].A[nx],
+                                                                  RRl[self.Nx - nx - 1][tind[nx + 2:]])
 
                 newprob = np.log2(newprob)
                 # use conditional probability to calculate probability of partial configuration
                 newprob += prob[:, np.newaxis]
-                prob = np.reshape(newprob, cons_states*block_states)
+                prob = np.reshape(newprob, cons_states * block_states)
                 minprob = np.min(minprob)
 
                 order = np.arange(prob.size)
@@ -446,8 +446,8 @@ class otn2d:
                     cutoff = np.max(prob) + np.log2(relative_P_cutoff)
                     keep = max((prob > cutoff).sum(), 1)
                     if keep < prob.size:
-                        order = prob.argpartition(-keep-1)
-                        pd_max = max(pd_max, prob[order[-keep-1]])
+                        order = prob.argpartition(-keep - 1)
+                        pd_max = max(pd_max, prob[order[-keep - 1]])
                         order = order[-keep:]
                         prob = prob[order]  # keep largest probabilities
 
@@ -455,12 +455,12 @@ class otn2d:
                 # indc = and state at the considered cluster (site)
                 inds, indc = order // block_states, np.mod(order, block_states)
                 states = states[inds]
-                states[:, ny*self.Nx+nx] = indc
+                states[:, ny * self.Nx + nx] = indc
                 vind = vind[inds]
                 deg = deg[inds]
                 # update corresponding virtual indices
                 vind[:, nx] = self._ind_bond_down(indc, ny, nx)
-                vind[:, nx+1] = self._ind_bond_right(indc, ny, nx)
+                vind[:, nx + 1] = self._ind_bond_right(indc, ny, nx)
                 Eng = Eng[inds]
                 Eng += self._update_Eng(states, ny, nx)
 
@@ -478,7 +478,7 @@ class otn2d:
 
                 lower = 0
                 for kk, sl in enumerate(sizes):
-                    upper = lower+sl
+                    upper = lower + sl
                     ind = order[lower:upper]
                     Eng_kk = Eng[ind]
                     ind_min = np.argmin(Eng_kk)
@@ -503,8 +503,8 @@ class otn2d:
 
                 # truncates based on cutoff probability and max_states to keep
                 if prob.size > M:
-                    order = prob.argpartition(-M-1)
-                    pd_max = max(pd_max, prob[order[-M-1]])
+                    order = prob.argpartition(-M - 1)
+                    pd_max = max(pd_max, prob[order[-M - 1]])
                     order = order[-M::]
                     vind = vind[order]
                     states = states[order]
@@ -514,10 +514,10 @@ class otn2d:
 
                 RLnew = {}  # update left environment
                 for one_ind in vind:
-                    tind = tuple(one_ind[:(nx+1)])
+                    tind = tuple(one_ind[:(nx + 1)])
                     if tind not in RLnew:
-                        tempR = np.dot(RLl[tind[:-1]], self.rhoT[ny+1].A[nx][:, tind[-1], :])
-                        tempR *= (1/mps.nfactor(tempR))
+                        tempR = np.dot(RLl[tind[:-1]], self.rhoT[ny + 1].A[nx][:, tind[-1], :])
+                        tempR *= (1 / mps.nfactor(tempR))
                         RLnew[tind] = tempR
                 RLl = RLnew
                 # self.logger.info('Prob: min/ min kept/ max: %0.2e / %0.2e / %0.2e ', minprob, np.min(prob), maxprob)
@@ -567,8 +567,8 @@ class otn2d:
         self.logger.info('Elapsed: %.2f seconds', time.time() - keep_time)
 
         # Initilise
-        vind = np.zeros((M, self.Nx+1), dtype=int)  # virtual indices from partial configurations
-        states = np.zeros((M, self.Nx*self.Ny), dtype=int)  # partial spin configurations
+        vind = np.zeros((M, self.Nx + 1), dtype=int)  # virtual indices from partial configurations
+        states = np.zeros((M, self.Nx * self.Ny), dtype=int)  # partial spin configurations
         Eng = np.zeros(M)
         globalmin = 1.
 
@@ -576,7 +576,7 @@ class otn2d:
 
         for ny in range(self.Ny):  # consider row ny
             keep_time = time.time()
-            self.logger.info('Row %d / %d', ny+1, self.Ny)
+            self.logger.info('Row %d / %d', ny + 1, self.Ny)
 
             RRl = self._setup_RR(vind, ny)  # setup right environments to calculate prob
             RLl = {(): np.ones(1)}  # and left
@@ -584,7 +584,7 @@ class otn2d:
             for nx in range(self.Nx):  # consider site nx in the row
                 block_states = self.N[ny][nx]  # number of states in the cluster (site)
                 W = self._peps_tensor(ny, nx)
-                newprob = np.zeros((M,  block_states))  # to update probabilities
+                newprob = np.zeros((M, block_states))  # to update probabilities
                 minprob = np.zeros(M)
                 seen = {}  # some diagrams repeat itself
                 for kk in range(M):
@@ -594,9 +594,9 @@ class otn2d:
                         minprob[kk] = minprob[seen[tind]]
                     else:   # calculate conditional probability
                         seen[tind] = kk
-                        AA = W[:, tind[nx], :, :, tind[nx+1]]
-                        newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]],
-                                                                      self.rhoT[ny+1].A[nx], RRl[self.Nx-nx-1][tind[nx+2:]])
+                        AA = W[:, tind[nx], :, :, tind[nx + 1]]
+                        newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]], self.rhoT[ny + 1].A[nx],
+                                                                      RRl[self.Nx - nx - 1][tind[nx + 2:]])
 
                 minprob = np.min(minprob)  # np.min(newprob)#
                 maxprob = np.max(newprob)  # np.min(newprob)#
@@ -608,17 +608,17 @@ class otn2d:
                 for kk in range(M):
                     indc[kk] = np.searchsorted(newprob[kk], rr[kk])
 
-                states[:, ny*self.Nx+nx] = indc[:]
+                states[:, ny * self.Nx + nx] = indc[:]
                 # update corresponding virtual indices
                 vind[:, nx] = self._ind_bond_down(indc, ny, nx)
-                vind[:, nx+1] = self._ind_bond_right(indc, ny, nx)
+                vind[:, nx + 1] = self._ind_bond_right(indc, ny, nx)
                 Eng += self._update_Eng(states, ny, nx)
                 RLnew = {}   # update left environment
                 for one_ind in vind:
-                    tind = tuple(one_ind[:(nx+1)])
+                    tind = tuple(one_ind[:(nx + 1)])
                     if tind not in RLnew:
-                        tempR = np.dot(RLl[tind[:-1]], self.rhoT[ny+1].A[nx][:, tind[-1], :])
-                        tempR *= (1/mps.nfactor(tempR))
+                        tempR = np.dot(RLl[tind[:-1]], self.rhoT[ny + 1].A[nx][:, tind[-1], :])
+                        tempR *= (1 / mps.nfactor(tempR))
                         RLnew[tind] = tempR
                 RLl = RLnew
                 # self.logger.info('Prob: min/ max:  %0.2e / %0.2e ', minprob, maxprob)
@@ -628,7 +628,7 @@ class otn2d:
             vind[:, 1:] = vind[:, :-1]  # reset vind before going to next layer
             vind[:, 0] = 0  # by shifting the one corresponding to "central" bond to begining
 
-        self.logger.info('Elapsed total: %.2f seconds', time.time()-keep_total_time)
+        self.logger.info('Elapsed total: %.2f seconds', time.time() - keep_total_time)
         self.energy = Eng
         self.degeneracy = 0
         self.states = states[:, self.order]
@@ -668,11 +668,11 @@ class otn2d:
                 might be lost when merging configurations with many layers of the excitation hierarchy.
 
                 ``3`` As in ``2`` but excitations are compressed to one layer of hierarchy.
-                It is useful only for problems with a single basin of attraction and low-energy excitations 
-                of small sizes but retains a one-to-one correspondence between the low-energy spectrum 
+                It is useful only for problems with a single basin of attraction and low-energy excitations
+                of small sizes but retains a one-to-one correspondence between the low-energy spectrum
                 and the stored excitation structure.
             M (int): maximal number of branches (partial configurations) that are kept during the search.
-            relative_P_cutoff (float): do not keep branches with a probability 
+            relative_P_cutoff (float): do not keep branches with a probability
                 smaller by that factor comparing with most probable one.
             max_dEng (float): maximal excitation energy being targeted.
             lim_hd (int): Lower limit of Hamming distance between states (while merging). Outputs fewer states.
@@ -728,13 +728,13 @@ class otn2d:
         #  prepare environments for layers from bottom
         self.logger.info('Preprocesing ... ')
         self._setup_rhoT(graduate_truncation=graduate_truncation,
-                    Dmax=Dmax, tolS=tolS,
-                    tolV=tolV, max_sweeps=max_sweeps)
+                         Dmax=Dmax, tolS=tolS,
+                         tolV=tolV, max_sweeps=max_sweeps)
         self.logger.info('Elapsed: %.2f seconds', time.time() - keep_time)
 
         #  Initilise
-        vind = np.zeros((1, self.Nx+1), dtype=self.indtype)  # virtual indices from partial configurations
-        states = np.zeros((1, self.Nx*self.Ny), dtype=self.indtype)  # (partial) spin configurations
+        vind = np.zeros((1, self.Nx + 1), dtype=self.indtype)  # virtual indices from partial configurations
+        states = np.zeros((1, self.Nx * self.Ny), dtype=self.indtype)  # (partial) spin configurations
         # energies / probabilities / deg of partial configurations
         Eng, prob, deg = np.zeros(1), np.zeros(1), np.ones(1, dtype=int)
         pd_max, globalmin = -np.inf, 1.  # largest discarded probability, smallest calculated prob
@@ -744,7 +744,7 @@ class otn2d:
         self.logger.info('Searching ... ')
         for ny in range(self.Ny):  # consider row ny
             keep_time = time.time()
-            self.logger.info('Layer %d / %d', ny+1, self.Ny)
+            self.logger.info('Layer %d / %d', ny + 1, self.Ny)
 
             RRl = self._setup_RR(vind, ny)  # setup right environments to calculate prob
             RLl = {(): np.ones(1)}  # and left
@@ -753,17 +753,17 @@ class otn2d:
                 # number of: states in the cluster, considered states
                 block_states, cons_states = self.N[ny][nx], prob.size
                 W = self._peps_tensor(ny, nx)  # PEPS tensor
-                newprob, minprob = np.zeros((cons_states,  block_states)), np.zeros(cons_states)
+                newprob, minprob = np.zeros((cons_states, block_states)), np.zeros(cons_states)
                 for kk in range(cons_states):
                     tind = tuple(vind[kk])
-                    AA = W[:, tind[nx], :, :, tind[nx+1]]
-                    newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]],
-                                                                  self.rhoT[ny+1].A[nx], RRl[self.Nx-nx-1][tind[nx+2:]])
+                    AA = W[:, tind[nx], :, :, tind[nx + 1]]
+                    newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]], self.rhoT[ny + 1].A[nx],
+                                                                  RRl[self.Nx - nx - 1][tind[nx + 2:]])
 
                 newprob = np.log2(newprob)
                 # use conditional probability to calculate probability of partial configuration
                 newprob += prob[:, np.newaxis]
-                prob = np.reshape(newprob, cons_states*block_states)
+                prob = np.reshape(newprob, cons_states * block_states)
                 minprob = np.min(minprob)
 
                 order = np.arange(prob.size)
@@ -772,8 +772,8 @@ class otn2d:
                     cutoff = np.max(prob) + np.log2(relative_P_cutoff)
                     keep = max((prob > cutoff).sum(), 1)
                     if keep < prob.size:
-                        order = prob.argpartition(-keep-1)
-                        pd_max = max(pd_max, prob[order[-keep-1]])
+                        order = prob.argpartition(-keep - 1)
+                        pd_max = max(pd_max, prob[order[-keep - 1]])
                         order = order[-keep:]
                         prob = prob[order]  # keep largest probabilities
 
@@ -781,12 +781,12 @@ class otn2d:
                 # indc = and state at the considered cluster (site)
                 inds, indc = order // block_states, np.mod(order, block_states)
                 states = states[inds]
-                states[:, ny*self.Nx+nx] = indc
+                states[:, ny * self.Nx + nx] = indc
                 vind = vind[inds]
                 deg = deg[inds]
                 # update corresponding virtual indices
                 vind[:, nx] = self._ind_bond_down(indc, ny, nx)
-                vind[:, nx+1] = self._ind_bond_right(indc, ny, nx)
+                vind[:, nx + 1] = self._ind_bond_right(indc, ny, nx)
                 Eng = Eng[inds]
                 Eng += self._update_Eng(states, ny, nx)
 
@@ -800,11 +800,11 @@ class otn2d:
                 degn = np.zeros(lsizes, dtype=int)
                 Engn = np.zeros(lsizes)
                 probn = np.zeros(lsizes)
-                statesn = np.zeros((lsizes, self.Nx*self.Ny), dtype=self.indtype)
-                
+                statesn = np.zeros((lsizes, self.Nx * self.Ny), dtype=self.indtype)
+
                 lower = 0
                 for kk, sl in enumerate(sizes):
-                    upper = lower+sl
+                    upper = lower + sl
                     ind = order[lower:upper]
                     lower = upper
                     Eng_kk = Eng[ind]
@@ -823,13 +823,13 @@ class otn2d:
                         probn[kk] = prob[ind_deg]
 
                 if probn.size > M:
-                    order_size = probn.argpartition(-M-1)
-                    pd_max = max(pd_max, probn[order_size[-M-1]])
+                    order_size = probn.argpartition(-M - 1)
+                    pd_max = max(pd_max, probn[order_size[-M - 1]])
                     order_size = order_size[-M::]
-                else:    
+                else:
                     order_size = np.arange(probn.size)
 
-                cum_sizes = np.cumsum(sizes, dtype=int) 
+                cum_sizes = np.cumsum(sizes, dtype=int)
                 el = []  # new list collecting all excitations (excitations list) of all branches
                 for kk in order_size:
                     upper = cum_sizes[kk]
@@ -839,7 +839,7 @@ class otn2d:
                     prob_kk = prob[ind]
 
                     bel = self.el[inds[indn[kk]]][:]
-                    # add other merged branches as new excitations                    
+                    # add other merged branches as new excitations
                     for ii, En, pr in zip(ind, Eng_kk, prob_kk):  # merge other excitations
                         conf_dEng = En - Engn[kk]
                         if (conf_dEng <= max_dEng) and (ii != indn[kk]):
@@ -848,8 +848,8 @@ class otn2d:
                             dpos = dstate.nonzero()[0]
                             dstate = dstate[dpos]
                             if (lim_hd <= 1) or (self._exc_hd(dstate) >= lim_hd):
-                                dfirst, dlast = dpos[0], self.Nx*ny+nx
-                                dP = pr-probn[kk]
+                                dfirst, dlast = dpos[0], self.Nx * ny + nx
+                                dP = pr - probn[kk]
                                 di = self._exc_add_to_d(dpos, dstate)  # dict index
                                 sel = []  # sub-excitations list
                                 # add sub-excitations
@@ -870,10 +870,10 @@ class otn2d:
 
                 RLnew = {}  # update left environment
                 for one_ind in vind:
-                    tind = tuple(one_ind[:(nx+1)])
+                    tind = tuple(one_ind[:(nx + 1)])
                     if tind not in RLnew:
-                        tempR = np.dot(RLl[tind[:-1]], self.rhoT[ny+1].A[nx][:, tind[-1], :])
-                        tempR *= (1/mps.nfactor(tempR))
+                        tempR = np.dot(RLl[tind[:-1]], self.rhoT[ny + 1].A[nx][:, tind[-1], :])
+                        tempR *= (1 / mps.nfactor(tempR))
                         RLnew[tind] = tempR
                 RLl = RLnew
                 # self.logger.info('Prob: min/ min kept/ max: %0.2e / %0.2e / %0.2e ', minprob, np.min(prob), maxprob)
@@ -905,7 +905,7 @@ class otn2d:
         r"""
         Adds a small random noise to the couplings stored in the class.
 
-        It should be used to remove accidental degeneracies while searching 
+        It should be used to remove accidental degeneracies while searching
         for low-energy configurations using 'excitations_encoding' 2 or 3.
 
         Args:
@@ -914,7 +914,7 @@ class otn2d:
         self.logger.info('Adding noise to the coupling with ampliture %.2e', amplitude)
         if self.mode == 'Ising':
             nzr = self.J.nonzero()
-            kk = ((np.random.rand(len(nzr[0]))*2-1)*amplitude)
+            kk = ((np.random.rand(len(nzr[0])) * 2 - 1) * amplitude)
             for i, j, k in zip(nzr[0], nzr[1], kk):
                 self.J[i, j] += k
             self._divide_couplings()
@@ -924,7 +924,7 @@ class otn2d:
             for key, value in self.J['fun'].items():
                 func_new[key] = value.copy()
                 if len(value.shape) == 1:
-                    func_new[key] += ((np.random.rand(value.shape[0])*2-1)*amplitude)
+                    func_new[key] += ((np.random.rand(value.shape[0]) * 2 - 1) * amplitude)
             self.J['fun'] = func_new
 
     def _search_low_energy_spectrum_v2(self, M=2**10, relative_P_cutoff=1e-6,
@@ -949,8 +949,8 @@ class otn2d:
         self.logger.info('Elapsed: %.2f seconds', time.time() - keep_time)
 
         #  Initilise
-        vind = np.zeros((1, self.Nx+1), dtype=self.indtype)  # virtual indices from partial configurations
-        states = np.zeros((1, self.Nx*self.Ny), dtype=self.indtype)  # (partial) spin configurations
+        vind = np.zeros((1, self.Nx + 1), dtype=self.indtype)  # virtual indices from partial configurations
+        states = np.zeros((1, self.Nx * self.Ny), dtype=self.indtype)  # (partial) spin configurations
         # energies / probabilities / deg of partial configurations
         Eng, prob, deg = np.zeros(1), np.zeros(1), np.ones(1, dtype=int)
         pd_max, globalmin = -np.inf, 1.  # largest discarded probability, smallest calculated prob
@@ -961,7 +961,7 @@ class otn2d:
         self.logger.info('Searching ... ')
         for ny in range(self.Ny):  # consider row ny
             keep_time = time.time()
-            self.logger.info('Layer %d / %d', ny+1, self.Ny)
+            self.logger.info('Layer %d / %d', ny + 1, self.Ny)
 
             RRl = self._setup_RR(vind, ny)  # setup right environments to calculate prob
             RLl = {(): np.ones(1)}  # and left
@@ -970,17 +970,17 @@ class otn2d:
                 # number of: states in the cluster, considered states
                 block_states, cons_states = self.N[ny][nx], prob.size
                 W = self._peps_tensor(ny, nx)  # PEPS tensor
-                newprob, minprob = np.zeros((cons_states,  block_states)), np.zeros(cons_states)
+                newprob, minprob = np.zeros((cons_states, block_states)), np.zeros(cons_states)
                 for kk in range(cons_states):
                     tind = tuple(vind[kk])
-                    AA = W[:, tind[nx], :, :, tind[nx+1]]
-                    newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]],
-                                                                  self.rhoT[ny+1].A[nx], RRl[self.Nx-nx-1][tind[nx+2:]])
+                    AA = W[:, tind[nx], :, :, tind[nx + 1]]
+                    newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]], self.rhoT[ny + 1].A[nx],
+                                                                  RRl[self.Nx - nx - 1][tind[nx + 2:]])
 
                 newprob = np.log2(newprob)
                 # use conditional probability to calculate probability of partial configuration
                 newprob += prob[:, np.newaxis]
-                prob = np.reshape(newprob, cons_states*block_states)
+                prob = np.reshape(newprob, cons_states * block_states)
                 minprob = np.min(minprob)
 
                 order = np.arange(prob.size)
@@ -989,8 +989,8 @@ class otn2d:
                     cutoff = np.max(prob) + np.log2(relative_P_cutoff)
                     keep = max((prob > cutoff).sum(), 1)
                     if keep < prob.size:
-                        order = prob.argpartition(-keep-1)
-                        pd_max = max(pd_max, prob[order[-keep-1]])
+                        order = prob.argpartition(-keep - 1)
+                        pd_max = max(pd_max, prob[order[-keep - 1]])
                         order = order[-keep:]
                         prob = prob[order]  # keep largest probabilities
 
@@ -998,12 +998,12 @@ class otn2d:
                 # indc = and state at the considered cluster (site)
                 inds, indc = order // block_states, np.mod(order, block_states)
                 states = states[inds]
-                states[:, ny*self.Nx+nx] = indc
+                states[:, ny * self.Nx + nx] = indc
                 vind = vind[inds]
                 deg = deg[inds]
                 # update corresponding virtual indices
                 vind[:, nx] = self._ind_bond_down(indc, ny, nx)
-                vind[:, nx+1] = self._ind_bond_right(indc, ny, nx)
+                vind[:, nx + 1] = self._ind_bond_right(indc, ny, nx)
                 Eng = Eng[inds]
                 Eng += self._update_Eng(states, ny, nx)
 
@@ -1017,11 +1017,11 @@ class otn2d:
                 degn = np.zeros(lsizes, dtype=int)
                 Engn = np.zeros(lsizes)
                 probn = np.zeros(lsizes)
-                statesn = np.zeros((lsizes, self.Nx*self.Ny), dtype=self.indtype)
-                
+                statesn = np.zeros((lsizes, self.Nx * self.Ny), dtype=self.indtype)
+
                 lower = 0
                 for kk, sl in enumerate(sizes):
-                    upper = lower+sl
+                    upper = lower + sl
                     ind = order[lower:upper]
                     lower = upper
                     Eng_kk = Eng[ind]
@@ -1040,13 +1040,13 @@ class otn2d:
                         probn[kk] = prob[ind_deg]
 
                 if probn.size > M:
-                    order_size = probn.argpartition(-M-1)
-                    pd_max = max(pd_max, probn[order_size[-M-1]])
+                    order_size = probn.argpartition(-M - 1)
+                    pd_max = max(pd_max, probn[order_size[-M - 1]])
                     order_size = order_size[-M::]
-                else:    
+                else:
                     order_size = np.arange(probn.size)
 
-                cum_sizes = np.cumsum(sizes, dtype=int) 
+                cum_sizes = np.cumsum(sizes, dtype=int)
                 el = []  # new list collecting all excitations (excitations list) of all branches
                 for kk in order_size:
                     upper = cum_sizes[kk]
@@ -1056,7 +1056,7 @@ class otn2d:
                     prob_kk = prob[ind]
 
                     bel = self.el[inds[indn[kk]]][:]
-                    # add other merged branches as new excitations                    
+                    # add other merged branches as new excitations
                     for ii, En, pr in zip(ind, Eng_kk, prob_kk):  # merge other excitations
                         conf_dEng = En - Engn[kk]
                         if (conf_dEng <= max_dEng) and (ii != indn[kk]):
@@ -1069,7 +1069,7 @@ class otn2d:
                                 sel = []  # sub-excitations list
                                 for sne in self.el[inds[ii]]:  # starts adding subexcitations
                                     if (sne[0][0] + conf_dEng <= max_dEng) and self._exc_overlap(di, sne[0][1]):
-                                        # sel.append(sne) ## this line do not cut high energy excitations higher in the tree
+                                        # sel.append(sne) # this line do not cut high energy excitations higher in the tree
                                         sel.append(self._exc_cut_energy(sne, max_dEng - (sne[0][0] + conf_dEng)))
                                         # add subexc if its total energy is small enough and it depends on the new one
                                 ne = ((conf_dEng, di), tuple(sel))   # base to form new excitation [dict index, dE, subexc]
@@ -1085,10 +1085,10 @@ class otn2d:
 
                 RLnew = {}  # update left environment
                 for one_ind in vind:
-                    tind = tuple(one_ind[:(nx+1)])
+                    tind = tuple(one_ind[:(nx + 1)])
                     if tind not in RLnew:
-                        tempR = np.dot(RLl[tind[:-1]], self.rhoT[ny+1].A[nx][:, tind[-1], :])
-                        tempR *= (1/mps.nfactor(tempR))
+                        tempR = np.dot(RLl[tind[:-1]], self.rhoT[ny + 1].A[nx][:, tind[-1], :])
+                        tempR *= (1 / mps.nfactor(tempR))
                         RLnew[tind] = tempR
                 RLl = RLnew
                 # self.logger.info('Prob: min/ min kept/ max: %0.2e / %0.2e / %0.2e ', minprob, np.min(prob), maxprob)
@@ -1140,39 +1140,39 @@ class otn2d:
                          tolV=tolV, max_sweeps=max_sweeps)
         self.logger.info('Elapsed: %.2f seconds', time.time() - keep_time)
 
-        #Initilise
-        vind       = np.zeros((1, self.Nx+1), dtype = self.indtype)  # virtual indices from partial configurations
-        states     = np.zeros((1, self.Nx*self.Ny), dtype = self.indtype) # (partial) spin configurations
+        # Initilise
+        vind = np.zeros((1, self.Nx + 1), dtype=self.indtype)  # virtual indices from partial configurations
+        states = np.zeros((1, self.Nx * self.Ny), dtype=self.indtype)  # (partial) spin configurations
         # energies / probabilities / deg of partial configurations
-        Eng, prob, deg = np.zeros(1), np.zeros(1), np.ones(1, dtype = int)
+        Eng, prob, deg = np.zeros(1), np.zeros(1), np.ones(1, dtype=int)
         pd_max, globalmin = -np.inf, 1.   # largest discarded probability, smallest calculated prob
-        self._exc_initialise() ## initialise structure to keep excitations
+        self._exc_initialise()  # initialise structure to keep excitations
         self._reset_adj(J=self.J, Nx=self.Nx, Ny=self.Ny, ind=self.ind)
 
-        #Start searching the tree
+        # Start searching the tree
         self.logger.info('Searching ... ')
-        for ny in range(self.Ny):  ## consider row ny
+        for ny in range(self.Ny):  # consider row ny
             keep_time = time.time()
-            self.logger.info('Layer %d / %d', ny+1, self.Ny)
+            self.logger.info('Layer %d / %d', ny + 1, self.Ny)
 
-            RRl = self._setup_RR(vind, ny) ## setup right environments to calculate prob
-            RLl = { () : np.ones(1) }     ## and left
+            RRl = self._setup_RR(vind, ny)  # setup right environments to calculate prob
+            RLl = {(): np.ones(1)}  # and left
 
-            for nx in range(self.Nx):    ## consider site nx in the row
-                ## number of: states in the cluster, considered states
+            for nx in range(self.Nx):  # consider site nx in the row
+                # number of: states in the cluster, considered states
                 block_states, cons_states = self.N[ny][nx], prob.size
-                W = self._peps_tensor(ny, nx) # PEPS tensor
-                newprob, minprob = np.zeros((cons_states,  block_states)), np.zeros(cons_states)
+                W = self._peps_tensor(ny, nx)  # PEPS tensor
+                newprob, minprob = np.zeros((cons_states, block_states)), np.zeros(cons_states)
                 for kk in range(cons_states):
                     tind = tuple(vind[kk])
-                    AA = W[:, tind[nx], :, :, tind[nx+1]]
-                    newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]],
-                                                                  self.rhoT[ny+1].A[nx], RRl[self.Nx-nx-1][tind[nx+2:]])
+                    AA = W[:, tind[nx], :, :, tind[nx + 1]]
+                    newprob[kk], minprob[kk] = self._calculate_Pn(AA, RLl[tind[:nx]], self.rhoT[ny + 1].A[nx],
+                                                                  RRl[self.Nx - nx - 1][tind[nx + 2:]])
 
                 newprob = np.log2(newprob)
                 # use conditional probability to calculate probability of partial configuration
                 newprob += prob[:, np.newaxis]
-                prob = np.reshape(newprob, cons_states*block_states)
+                prob = np.reshape(newprob, cons_states * block_states)
                 minprob = np.min(minprob)
 
                 order = np.arange(prob.size)
@@ -1181,8 +1181,8 @@ class otn2d:
                     cutoff = np.max(prob) + np.log2(relative_P_cutoff)
                     keep = max((prob > cutoff).sum(), 1)
                     if keep < prob.size:
-                        order = prob.argpartition(-keep-1)
-                        pd_max = max(pd_max, prob[order[-keep-1]])
+                        order = prob.argpartition(-keep - 1)
+                        pd_max = max(pd_max, prob[order[-keep - 1]])
                         order = order[-keep:]
                         prob = prob[order]  # keep largest probabilities
 
@@ -1190,12 +1190,12 @@ class otn2d:
                 # indc = and state at the considered cluster (site)
                 inds, indc = order // block_states, np.mod(order, block_states)
                 states = states[inds]
-                states[:, ny*self.Nx+nx] = indc
+                states[:, ny * self.Nx + nx] = indc
                 vind = vind[inds]
                 deg = deg[inds]
                 # update corresponding virtual indices
                 vind[:, nx] = self._ind_bond_down(indc, ny, nx)
-                vind[:, nx+1] = self._ind_bond_right(indc, ny, nx)
+                vind[:, nx + 1] = self._ind_bond_right(indc, ny, nx)
                 Eng = Eng[inds]
                 Eng += self._update_Eng(states, ny, nx)
 
@@ -1209,11 +1209,11 @@ class otn2d:
                 degn = np.zeros(lsizes, dtype=int)
                 Engn = np.zeros(lsizes)
                 probn = np.zeros(lsizes)
-                statesn = np.zeros((lsizes, self.Nx*self.Ny), dtype=self.indtype)
-                
+                statesn = np.zeros((lsizes, self.Nx * self.Ny), dtype=self.indtype)
+
                 lower = 0
                 for kk, sl in enumerate(sizes):
-                    upper = lower+sl
+                    upper = lower + sl
                     ind = order[lower:upper]
                     lower = upper
                     Eng_kk = Eng[ind]
@@ -1232,13 +1232,13 @@ class otn2d:
                         probn[kk] = prob[ind_deg]
 
                 if probn.size > M:
-                    order_size = probn.argpartition(-M-1)
-                    pd_max = max(pd_max, probn[order_size[-M-1]])
+                    order_size = probn.argpartition(-M - 1)
+                    pd_max = max(pd_max, probn[order_size[-M - 1]])
                     order_size = order_size[-M::]
-                else:    
+                else:
                     order_size = np.arange(probn.size)
 
-                cum_sizes = np.cumsum(sizes, dtype=int) 
+                cum_sizes = np.cumsum(sizes, dtype=int)
                 el = []  # new list collecting all excitations (excitations list) of all branches
                 for kk in order_size:
                     upper = cum_sizes[kk]
@@ -1249,7 +1249,7 @@ class otn2d:
 
                     bel = self.el[inds[indn[kk]]][:]
                     new_bel = []
-                    # add other merged branches as new excitations                    
+                    # add other merged branches as new excitations
                     for ii, En, pr in zip(ind, Eng_kk, prob_kk):  # merge other excitations
                         conf_dEng = En - Engn[kk]
                         if (conf_dEng <= max_dEng) and (ii != indn[kk]):
@@ -1257,7 +1257,7 @@ class otn2d:
                             dstate = np.bitwise_xor(statesn[kk], states[ii])
                             dpos = dstate.nonzero()[0]
                             dstate = dstate[dpos]
-                            nsel = []  ## list of subexcitations of dstate overlaping with it
+                            nsel = []  # list of subexcitations of dstate overlaping with it
                             for sne in self.el[inds[ii]]:  # starts adding subexcitations
                                 if (sne[0][0] + conf_dEng <= max_dEng) and (self._exc_overlap((dpos, dstate), sne[0][1])):
                                     nsel.append(sne)
@@ -1268,8 +1268,8 @@ class otn2d:
                                     substate = self._exc_merge(substate, sdi)
                                 if (lim_hd <= 1 or self._exc_hd(substate[1]) >= lim_hd) and self._exc_elementary(substate):
                                     sdi = self._exc_add_to_d(*substate)
-                                    new_bel.append( ((sEng[nn] + conf_dEng, sdi), ()) )
-                    new_bel = sorted(new_bel, key=lambda x: x[0][0]) # sorted by energy
+                                    new_bel.append(((sEng[nn] + conf_dEng, sdi), ()))
+                    new_bel = sorted(new_bel, key=lambda x: x[0][0])  # sorted by energy
                     bel.extend(new_bel)
                     el.append(bel)  # creates new list of excitations
 
@@ -1293,24 +1293,24 @@ class otn2d:
                 deg = degn[order_size]
                 self.el = el
 
-                RLnew = {}   ## update left environment
+                RLnew = {}  # update left environment
                 for one_ind in vind:
-                    tind = tuple(one_ind[:(nx+1)])
+                    tind = tuple(one_ind[:(nx + 1)])
                     if tind not in RLnew:
-                        tempR  = np.dot(RLl[tind[:-1]], self.rhoT[ny+1].A[nx][:, tind[-1], :] )
-                        tempR *= (1/mps.nfactor(tempR))
+                        tempR = np.dot(RLl[tind[:-1]], self.rhoT[ny + 1].A[nx][:, tind[-1], :])
+                        tempR *= (1 / mps.nfactor(tempR))
                         RLnew[tind] = tempR
                 RLl = RLnew
                 # self.logger.info('Prob: min/ min kept/ max: %0.2e / %0.2e / %0.2e ', minprob, np.min(prob), maxprob)
-                ## collects information on smallest encountered probability (negative indicate error)
+                # collects information on smallest encountered probability (negative indicate error)
                 globalmin = min(globalmin, minprob)
             self._exc_clear_d()
             self.logger.info('Elapsed: %.2f seconds', time.time() - keep_time)
-            vind[:, 1:] = vind[:, :-1]  ## reset vind before going to next layer
-            vind[:, 0]  = 0             ## by shifting the one corresponding to "central" bond to begining
+            vind[:, 1:] = vind[:, :-1]  # reset vind before going to next layer
+            vind[:, 0] = 0  # by shifting the one corresponding to "central" bond to begining
 
         # at the end greadily removes similar droplets
-        bel = sorted(self.el[0], key=lambda x: x[0][0]) # sorted by energy
+        bel = sorted(self.el[0], key=lambda x: x[0][0])  # sorted by energy
         if lim_hd > 1:
             distinct_bel = []
             for x in bel:
@@ -1318,11 +1318,11 @@ class otn2d:
                 for y in distinct_bel:
                     hd = self._exc_hd_comp(x[0][1], y[0][1])
                     if hd < lim_hd:
-                        to_add=False
+                        to_add = False
                         break
                 if to_add:
                     distinct_bel.append(x)
-            self.el[0] = distinct_bel  #finish merging given branch
+            self.el[0] = distinct_bel  # finish merging given branch
         else:
             self.el[0] = bel
         self._exc_clear_d()
@@ -1365,7 +1365,7 @@ class otn2d:
         Eng = Eng[order]
 
         max_states = min(max_states, len(Eng))
-        states = np.zeros((max_states, self.Nx*self.Ny), dtype = self.indtype)
+        states = np.zeros((max_states, self.Nx * self.Ny), dtype=self.indtype)
         for ii in range(max_states):
             newst = gs.copy()
             for kk in flip[order[ii]]:
@@ -1387,25 +1387,25 @@ class otn2d:
         self.ld = np.ones((self.Ny, self.Nx), dtype=int)
 
         if self.mode == 'Ising':
-            self.N = np.zeros((self.Ny, self.Nx), dtype=int) #  number of states in local block
+            self.N = np.zeros((self.Ny, self.Nx), dtype=int)  # number of states in local block
             # indices corresponding to active spins in the block
-            self.ind = [[0]*self.Nx for _ in range(self.Ny)]
-            self.sN = np.zeros((self.Ny, self.Nx), dtype=int) # number of spins in local block
+            self.ind = [[0] * self.Nx for _ in range(self.Ny)]
+            self.sN = np.zeros((self.Ny, self.Nx), dtype=int)  # number of spins in local block
 
             for ny in range(self.Ny):
                 for nx in range(self.Nx):
-                    ind  =  self.Nc * (self.Nx * ny + nx) + np.arange(self.Nc)
-                    Jsum =  np.sum(np.abs(self.J[ind,:].toarray()), axis = 1) + \
-                            np.sum(np.abs(self.J[:,ind].toarray()), axis = 0)
+                    ind = self.Nc * (self.Nx * ny + nx) + np.arange(self.Nc)
+                    Jsum = np.sum(np.abs(self.J[ind, :].toarray()), axis=1) + \
+                        np.sum(np.abs(self.J[:, ind].toarray()), axis=0)
                     self.ind[ny][nx] = ind[np.nonzero(Jsum > 1e-12)]
                     self.N[ny][nx] = 2**len(self.ind[ny][nx])
                     self.sN[ny][nx] = len(self.ind[ny][nx])
 
-            self.Jin = [ [0]*self.Nx for _ in range(self.Ny) ]
-            self.Jl  = [ [np.zeros((self.sN[ny][nx], 0)) for nx in range(self.Nx) ] for ny in range(self.Ny) ]
-            self.Ju  = [ [np.zeros((self.sN[ny][nx], 0)) for nx in range(self.Nx) ] for ny in range(self.Ny) ]
-            self.id  = [ [np.zeros(0, dtype=int)]*self.Nx for _ in range(self.Ny) ]
-            self.ir  = [ [np.zeros(0, dtype=int)]*self.Nx for _ in range(self.Ny) ]
+            self.Jin = [[0] * self.Nx for _ in range(self.Ny)]
+            self.Jl = [[np.zeros((self.sN[ny][nx], 0)) for nx in range(self.Nx)] for ny in range(self.Ny)]
+            self.Ju = [[np.zeros((self.sN[ny][nx], 0)) for nx in range(self.Nx)] for ny in range(self.Ny)]
+            self.id = [[np.zeros(0, dtype=int)] * self.Nx for _ in range(self.Ny)]
+            self.ir = [[np.zeros(0, dtype=int)] * self.Nx for _ in range(self.Ny)]
             self.sl = np.zeros((self.Ny, self.Nx), dtype=int)
             self.sd = np.zeros((self.Ny, self.Nx), dtype=int)
             self.sr = np.zeros((self.Ny, self.Nx), dtype=int)
@@ -1416,33 +1416,33 @@ class otn2d:
                     ind = self.ind[ny][nx]
                     self.Jin[ny][nx] = self.J[ind, :][:, ind].toarray()
                     if nx > 0:
-                        JJ  = self.J[self.ind[ny][nx-1]][:,ind].toarray()  ## connection to left cluster
-                        iright  = np.nonzero(np.sum(np.abs(JJ), axis=1))[0]  ## looks for non-zero raws
-                        self.Jl[ny][nx]   = JJ[iright].T
-                        self.ir[ny][nx-1] = iright
-                        self.sr[ny][nx-1] = len(iright)
-                        self.sl[ny][nx]   = len(iright)
-                        self.lr[ny][nx-1] = 2**len(iright)
+                        JJ = self.J[self.ind[ny][nx - 1]][:, ind].toarray()  # connection to left cluster
+                        iright = np.nonzero(np.sum(np.abs(JJ), axis=1))[0]  # looks for non-zero raws
+                        self.Jl[ny][nx] = JJ[iright].T
+                        self.ir[ny][nx - 1] = iright
+                        self.sr[ny][nx - 1] = len(iright)
+                        self.sl[ny][nx] = len(iright)
+                        self.lr[ny][nx - 1] = 2**len(iright)
 
                     if ny > 0:
-                        JJ  = self.J[self.ind[ny-1][nx]][:,ind].toarray()  ## connection to upper cluster
-                        idown  = np.nonzero(np.sum(np.abs(JJ), axis=1))[0]  ## looks for non-zero raws
-                        self.Ju[ny][nx]   = JJ[idown].T
-                        self.id[ny-1][nx] = idown
-                        self.sd[ny-1][nx] = len(idown)
-                        self.su[ny][nx]   = len(idown)
-                        self.ld[ny-1][nx] = 2**len(idown)
+                        JJ = self.J[self.ind[ny - 1][nx]][:, ind].toarray()  # connection to upper cluster
+                        idown = np.nonzero(np.sum(np.abs(JJ), axis=1))[0]  # looks for non-zero raws
+                        self.Ju[ny][nx] = JJ[idown].T
+                        self.id[ny - 1][nx] = idown
+                        self.sd[ny - 1][nx] = len(idown)
+                        self.su[ny][nx] = len(idown)
+                        self.ld[ny - 1][nx] = 2**len(idown)
         elif self.mode == 'RMF':
             for ny in range(self.Ny):
                 for nx in range(self.Nx):
-                    if ((ny, nx-1, ny, nx) in self.J['fac']) or ((ny, nx, ny, nx-1) in self.J['fac']):
-                        self.ll[ny, nx]   = self.N[ny][nx-1]
-                    if ((ny, nx, ny, nx+1) in self.J['fac']) or ((ny, nx+1, ny, nx) in self.J['fac']):
-                        self.lr[ny, nx]   = self.N[ny][nx+1]
-                    if ((ny-1, nx, ny, nx) in self.J['fac']) or ((ny, nx, ny-1, nx) in self.J['fac']):
-                        self.lu[ny, nx]   = self.N[ny-1][nx]
-                    if ((ny, nx, ny+1, nx) in self.J['fac']) or ((ny+1, nx, ny, nx) in self.J['fac']):
-                        self.ld[ny, nx]   = self.N[ny+1][nx]
+                    if ((ny, nx - 1, ny, nx) in self.J['fac']) or ((ny, nx, ny, nx - 1) in self.J['fac']):
+                        self.ll[ny, nx] = self.N[ny][nx - 1]
+                    if ((ny, nx, ny, nx + 1) in self.J['fac']) or ((ny, nx + 1, ny, nx) in self.J['fac']):
+                        self.lr[ny, nx] = self.N[ny][nx + 1]
+                    if ((ny - 1, nx, ny, nx) in self.J['fac']) or ((ny, nx, ny - 1, nx) in self.J['fac']):
+                        self.lu[ny, nx] = self.N[ny - 1][nx]
+                    if ((ny, nx, ny + 1, nx) in self.J['fac']) or ((ny + 1, nx, ny, nx) in self.J['fac']):
+                        self.ld[ny, nx] = self.N[ny + 1][nx]
         self._reset_X()
 
     #  Auxliary functions for local states numbering
@@ -1451,8 +1451,8 @@ class otn2d:
         r"""
         All spin configurations in a block.
         """
-        st = np.array(list(itertools.product([1, 0], repeat=N)), dtype = np.int8)  # all configurations in block
-        st = st[:,::-1]  # first spin changing fastest
+        st = np.array(list(itertools.product([1, 0], repeat=N)), dtype=np.int8)  # all configurations in block
+        st = st[:, ::-1]  # first spin changing fastest
         return st
 
     def _ind_bond_down(self, st_number, ny, nx):
@@ -1460,8 +1460,8 @@ class otn2d:
         Virtual indices selected by considered spin configurations.
         """
         if self.mode == 'Ising':
-            st = 1-self._cluster_configurations(self.sN[ny][nx])
-            todec = 2** np.arange(self.sd[ny][nx])
+            st = 1 - self._cluster_configurations(self.sN[ny][nx])
+            todec = 2 ** np.arange(self.sd[ny][nx])
             return np.dot(st[st_number, :][:, self.id[ny][nx]], todec)
         elif self.mode == 'RMF':
             return np.mod(st_number, self.ld[ny, nx])  # update corresponding virtual indices
@@ -1471,8 +1471,8 @@ class otn2d:
         Virtual indices selected by considered spin configurations.
         """
         if self.mode == 'Ising':
-            st = 1-self._cluster_configurations(self.sN[ny][nx])
-            todec = 2** np.arange(self.sr[ny][nx])
+            st = 1 - self._cluster_configurations(self.sN[ny][nx])
+            todec = 2 ** np.arange(self.sr[ny][nx])
             return np.dot(st[st_number, :][:, self.ir[ny][nx]], todec)
         elif self.mode == 'RMF':
             return np.mod(st_number, self.lr[ny, nx])  # update corresponding virtual indices
@@ -1481,14 +1481,14 @@ class otn2d:
         r"""
         Return indices corresponding to delta for some of the spins.
         """
-        ind_delta = np.zeros(1, dtype = int)
+        ind_delta = np.zeros(1, dtype=int)
         for ii in range(len(select)):
-           ind_delta = np.hstack(( ind_delta, ind_delta+2**select[ii] ))
+            ind_delta = np.hstack((ind_delta, ind_delta + 2**select[ii]))
 
-        ind_rest = np.zeros(1, dtype = int)
+        ind_rest = np.zeros(1, dtype=int)
         for ii in range(N):
             if ii not in select:
-                ind_rest = np.hstack(( ind_rest, ind_rest+2**ii ))
+                ind_rest = np.hstack((ind_rest, ind_rest + 2**ii))
 
         return ind_delta, ind_rest
 
@@ -1498,52 +1498,52 @@ class otn2d:
         (well-defined part of energy, i.e. without couplings to unknown spins)
         """
         if self.mode == 'Ising':
-            st  = 2*self._cluster_configurations(self.sN[ny][nx])-1
-            Es  = 1.*np.sum(np.dot(st, np.triu(self.Jin[ny][nx], 1)) * st, 1) + \
-                     np.dot(st, self.Jin[ny][nx].diagonal())  # inner cluster energy
+            st = 2 * self._cluster_configurations(self.sN[ny][nx]) - 1
+            Es = 1. * np.sum(np.dot(st, np.triu(self.Jin[ny][nx], 1)) * st, 1) + \
+                np.dot(st, self.Jin[ny][nx].diagonal())  # inner cluster energy
 
-            pos = ny*self.Nx+nx        # position of cluster
+            pos = ny * self.Nx + nx        # position of cluster
             dEng = Es[states[:, pos]]  # add energy of cluster for every configuration
 
             if nx > 0:  # if there is a cluster to the left
-                posl  = ny*self.Nx+(nx-1)
-                ext  = 2*self._cluster_configurations( self.sl[ny][nx] ).T -1  # indices corresponding to left leg
-                Esl   = np.dot(np.dot(st, self.Jl[ny][nx]), ext)
-                indr  = self._ind_bond_right(states[:, posl], ny, nx-1)
-                dEng  += Esl[states[:, pos], indr]
+                posl = ny * self.Nx + (nx - 1)
+                ext = 2 * self._cluster_configurations(self.sl[ny][nx]).T - 1  # indices corresponding to left leg
+                Esl = np.dot(np.dot(st, self.Jl[ny][nx]), ext)
+                indr = self._ind_bond_right(states[:, posl], ny, nx - 1)
+                dEng += Esl[states[:, pos], indr]
 
             if ny > 0:  # if there is a cluster to the left
-                posu  = (ny-1)*self.Nx+nx
-                ext  = 2*self._cluster_configurations( self.su[ny][nx] ).T -1  # indices corresponding to up leg
-                Esl   = np.dot(np.dot(st, self.Ju[ny][nx]), ext)
-                indu  = self._ind_bond_down(states[:, posu], ny-1, nx)
-                dEng  += Esl[states[:, pos], indu]
+                posu = (ny - 1) * self.Nx + nx
+                ext = 2 * self._cluster_configurations(self.su[ny][nx]).T - 1  # indices corresponding to up leg
+                Esl = np.dot(np.dot(st, self.Ju[ny][nx]), ext)
+                indu = self._ind_bond_down(states[:, posu], ny - 1, nx)
+                dEng += Esl[states[:, pos], indu]
         elif self.mode == 'RMF':
             N = self.N[ny][nx]
             if (ny, nx) in self.J['fac']:
                 Es = self.J['fun'][self.J['fac'][(ny, nx)]]
             else:
-                Es = np.zeros(self.N[ny][nx])  ## inner cluster energy
-            pos = ny*self.Nx+nx        # position of cluster
+                Es = np.zeros(self.N[ny][nx])  # inner cluster energy
+            pos = ny * self.Nx + nx        # position of cluster
             dEng = Es[states[:, pos]]  # add energy of cluster for every configuration
-            if nx > 0:  ## if there is a cluster to the left
-                if (ny, nx-1, ny, nx) in self.J['fac']:  #indices corresponding to leg 1 (left)
-                    Esl = self.J['fun'][self.J['fac'][(ny, nx-1, ny, nx)]].T
-                elif (ny, nx, ny, nx-1) in self.J['fac']:
-                    Esl = self.J['fun'][self.J['fac'][(ny, nx, ny, nx-1)]]
+            if nx > 0:  # if there is a cluster to the left
+                if (ny, nx - 1, ny, nx) in self.J['fac']:  # indices corresponding to leg 1 (left)
+                    Esl = self.J['fun'][self.J['fac'][(ny, nx - 1, ny, nx)]].T
+                elif (ny, nx, ny, nx - 1) in self.J['fac']:
+                    Esl = self.J['fun'][self.J['fac'][(ny, nx, ny, nx - 1)]]
                 else:
-                    Esl = np.zeros((N, self.N[ny][nx-1]))
-                posl  = ny*self.Nx+(nx-1)
-                dEng  += Esl[states[:, pos], states[:, posl]]
-            if ny > 0:  ## if there is a cluster above
-                if (ny-1, nx, ny, nx) in self.J['fac']:   #indices corresponding to leg 4 (up)
-                    Esu = self.J['fun'][self.J['fac'][(ny-1, nx, ny, nx)]].T
-                elif (ny, nx, ny-1, nx) in self.J['fac']:
-                    Esu = self.J['fun'][self.J['fac'][(ny, nx, ny-1, nx)]]
+                    Esl = np.zeros((N, self.N[ny][nx - 1]))
+                posl = ny * self.Nx + (nx - 1)
+                dEng += Esl[states[:, pos], states[:, posl]]
+            if ny > 0:  # if there is a cluster above
+                if (ny - 1, nx, ny, nx) in self.J['fac']:  # indices corresponding to leg 4 (up)
+                    Esu = self.J['fun'][self.J['fac'][(ny - 1, nx, ny, nx)]].T
+                elif (ny, nx, ny - 1, nx) in self.J['fac']:
+                    Esu = self.J['fun'][self.J['fac'][(ny, nx, ny - 1, nx)]]
                 else:
-                    Esu = np.zeros((N, self.N[ny-1][nx]))
-                posu  = (ny-1)*self.Nx+nx
-                dEng  += Esu[states[:, pos], states[:, posu]]
+                    Esu = np.zeros((N, self.N[ny - 1][nx]))
+                posu = (ny - 1) * self.Nx + nx
+                dEng += Esu[states[:, pos], states[:, posu]]
         return dEng
 
     # Auxliary functions for PEPS contractions
@@ -1554,108 +1554,107 @@ class otn2d:
         """
         if self.mode == 'Ising':
             N = self.sN[ny][nx]  # number of spins in block
-            L1, L2, L3, L4 = self.sl[ny][nx], self.sd[ny][nx], self.sr[ny][nx], self.su[ny][nx] # number of outer legs
-            #cluster self energy
-            st = 2*self._cluster_configurations(N)-1
+            L1, L2, L3, L4 = self.sl[ny][nx], self.sd[ny][nx], self.sr[ny][nx], self.su[ny][nx]  # number of outer legs
+            # cluster self energy
+            st = 2 * self._cluster_configurations(N) - 1
             Es = np.sum(np.dot(st, np.triu(self.Jin[ny][nx], 1)) * st, 1) + np.dot(st, self.Jin[ny][nx].diagonal())
             minEs = np.min(Es)
-            Es = self.beta*(minEs-Es)    #subtract Esmax for conditioning
+            Es = self.beta * (minEs - Es)  # subtract Esmax for conditioning
 
-            ext1    = 2*self._cluster_configurations(L1).T -1    #indices corresponding to leg 1 (left)
-            Ese1    = np.dot(np.dot(st, self.Jl[ny][nx]), ext1)
-            minEse1 = np.min(Ese1) #0
-            Ese1    = self.beta*(minEse1-Ese1)
+            ext1 = 2 * self._cluster_configurations(L1).T - 1  # indices corresponding to leg 1 (left)
+            Ese1 = np.dot(np.dot(st, self.Jl[ny][nx]), ext1)
+            minEse1 = np.min(Ese1)  # to 0
+            Ese1 = self.beta * (minEse1 - Ese1)
 
-            ext4    = 2* self._cluster_configurations(L4).T -1    #indices corresponding to leg 4 (up)
-            Ese4    = np.dot(np.dot(st, self.Ju[ny][nx]), ext4)
-            minEse4 = np.min(Ese4) #0
-            Ese4    = self.beta*(minEse4-Ese4)
+            ext4 = 2 * self._cluster_configurations(L4).T - 1  # indices corresponding to leg 4 (up)
+            Ese4 = np.dot(np.dot(st, self.Ju[ny][nx]), ext4)
+            minEse4 = np.min(Ese4)  # to 0
+            Ese4 = self.beta * (minEse4 - Ese4)
 
-            #collect exp(-beta (Es + Eleft + Eup))
-            Es_full  = np.reshape(np.tile(Es[:, np.newaxis], (1, 2**(L1+L4))), (2**N, 2**L1, 2**L4))
-            Es_full += np.reshape(np.tile(np.reshape(Ese1, (2**(N+L1), 1)), (1, 2**L4)), (2**N, 2**L1, 2**L4))
-            Es_full += np.reshape(np.tile(Ese4, (1, 2**L1) ), (2**N, 2**L1, 2**L4) )
-            Es_full  = np.exp(Es_full)
+            # collect exp(-beta (Es + Eleft + Eup))
+            Es_full = np.reshape(np.tile(Es[:, np.newaxis], (1, 2**(L1 + L4))), (2**N, 2**L1, 2**L4))
+            Es_full += np.reshape(np.tile(np.reshape(Ese1, (2**(N + L1), 1)), (1, 2**L4)), (2**N, 2**L1, 2**L4))
+            Es_full += np.reshape(np.tile(Ese4, (1, 2**L1)), (2**N, 2**L1, 2**L4))
+            Es_full = np.exp(Es_full)
 
             for ii in range(2**L4):
-                Es_full[:, :, ii] *= self.Xu[ny][nx][ii]  #conditioning
+                Es_full[:, :, ii] *= self.Xu[ny][nx][ii]  # conditioning
 
             for ii in range(2**L1):
-                Es_full[:, ii, :] *= self.Xl[ny][nx][ii]  #conditioning
+                Es_full[:, ii, :] *= self.Xl[ny][nx][ii]  # conditioning
 
-            #add delta L3 (right) + conditioning
+            # add delta L3 (right) + conditioning
             ind_delta, ind_rest = self._ind_split(N, self.ir[ny][nx])
             A = np.zeros((2**N, 2**L1, 2**L3, 2**L4))
             for ii in range(2**L3):
-                A[ind_rest+ind_delta[ii], :, ii, :] = Es_full[ind_rest+ind_delta[ii], :, :]*self.Xr[ny][nx][ii]
+                A[ind_rest + ind_delta[ii], :, ii, :] = Es_full[ind_rest + ind_delta[ii], :, :] * self.Xr[ny][nx][ii]
 
-            #add delta L2 (down) + conditioning
+            # add delta L2 (down) + conditioning
             ind_delta, ind_rest = self._ind_split(N, self.id[ny][nx])
             Es_full = np.zeros((2**N, 2**L1, 2**L2, 2**L3, 2**L4))
             for ii in range(2**L2):
-                Es_full[ind_rest+ind_delta[ii], :, ii, :, :] = A[ind_rest+ind_delta[ii], :, :, :]*self.Xd[ny][nx][ii]
+                Es_full[ind_rest + ind_delta[ii], :, ii, :, :] = A[ind_rest + ind_delta[ii], :, :, :] * self.Xd[ny][nx][ii]
 
         elif self.mode == 'RMF':
             N = self.N[ny][nx]  # size of node
-            L1, L2, L3, L4 = self.ll[ny, nx], self.ld[ny, nx], self.lr[ny, nx], self.lu[ny, nx] # size of outer legs
-            #cluster self energy
+            L1, L2, L3, L4 = self.ll[ny, nx], self.ld[ny, nx], self.lr[ny, nx], self.lu[ny, nx]  # size of outer legs
+            # cluster self energy
             if (ny, nx) in self.J['fac']:
                 Es = np.reshape(self.J['fun'][self.J['fac'][(ny, nx)]], N)
             else:
                 Es = np.zeros(N)
             minEs = np.min(Es)
-            Es = self.beta*(minEs-Es)    #subtract Esmax for conditioning
+            Es = self.beta * (minEs - Es)  # subtract Esmax for conditioning
 
-            if (ny, nx-1, ny, nx) in self.J['fac']:  #indices corresponding to leg 1 (left)
-                Ese1 = self.J['fun'][self.J['fac'][(ny, nx-1, ny, nx)]].T
-            elif (ny, nx, ny, nx-1) in self.J['fac']:
-                Ese1 = self.J['fun'][self.J['fac'][(ny, nx, ny, nx-1)]]
+            if (ny, nx - 1, ny, nx) in self.J['fac']:  # indices corresponding to leg 1 (left)
+                Ese1 = self.J['fun'][self.J['fac'][(ny, nx - 1, ny, nx)]].T
+            elif (ny, nx, ny, nx - 1) in self.J['fac']:
+                Ese1 = self.J['fun'][self.J['fac'][(ny, nx, ny, nx - 1)]]
             else:
                 Ese1 = np.zeros((N, L1))
 
-            minEse1 = np.min(Ese1) #0
-            Ese1    = self.beta*(minEse1-Ese1)
+            minEse1 = np.min(Ese1)  # to 0
+            Ese1 = self.beta * (minEse1 - Ese1)
 
-            if (ny-1, nx, ny, nx) in self.J['fac']:   #indices corresponding to leg 4 (up)
-                Ese4 = self.J['fun'][self.J['fac'][(ny-1, nx, ny, nx)]].T
-            elif (ny, nx, ny-1, nx) in self.J['fac']:
-                Ese4 = self.J['fun'][self.J['fac'][(ny, nx, ny-1, nx)]]
+            if (ny - 1, nx, ny, nx) in self.J['fac']:  # indices corresponding to leg 4 (up)
+                Ese4 = self.J['fun'][self.J['fac'][(ny - 1, nx, ny, nx)]].T
+            elif (ny, nx, ny - 1, nx) in self.J['fac']:
+                Ese4 = self.J['fun'][self.J['fac'][(ny, nx, ny - 1, nx)]]
             else:
                 Ese4 = np.zeros((N, L4))
 
-            minEse4 = np.min(Ese4) #0
-            Ese4    = self.beta*(minEse4-Ese4)
+            minEse4 = np.min(Ese4)  # to 0
+            Ese4 = self.beta * (minEse4 - Ese4)
 
-            #collect exp(-beta (Es + Eleft + Eup))
-            Es_full  = np.reshape(np.tile(Es[:, np.newaxis], (1, L1*L4)), (N, L1, L4))
-            Es_full += np.reshape(np.tile(np.reshape(Ese1, (N*L1, 1)), (1, L4)), (N, L1, L4))
-            Es_full += np.reshape(np.tile(Ese4, (1, L1) ), (N, L1, L4) )
-
-            Es_full  = np.exp(Es_full)
+            # collect exp(-beta (Es + Eleft + Eup))
+            Es_full = np.reshape(np.tile(Es[:, np.newaxis], (1, L1 * L4)), (N, L1, L4))
+            Es_full += np.reshape(np.tile(np.reshape(Ese1, (N * L1, 1)), (1, L4)), (N, L1, L4))
+            Es_full += np.reshape(np.tile(Ese4, (1, L1)), (N, L1, L4))
+            Es_full = np.exp(Es_full)
 
             for ii in range(L4):
-                Es_full[:, :, ii] *= self.Xu[ny, nx, ii]  #conditioning
+                Es_full[:, :, ii] *= self.Xu[ny, nx, ii]  # conditioning
 
             for ii in range(L1):
-                Es_full[:, ii, :] *= self.Xl[ny, nx, ii]  #conditioning
+                Es_full[:, ii, :] *= self.Xl[ny, nx, ii]  # conditioning
 
-            #add delta L3 (right) + conditioning
+            # add delta L3 (right) + conditioning
             A = np.zeros((N, L1, L3, L4))
             if L3 == 1:
-                A[:, :, 0, :] = Es_full[:, :, :]*self.Xr[ny, nx, 0]
+                A[:, :, 0, :] = Es_full[:, :, :] * self.Xr[ny, nx, 0]
             elif L3 == N:
                 for ii in range(L3):
-                    A[ii, :, ii, :] = Es_full[ii, :, :]*self.Xr[ny, nx, ii]
+                    A[ii, :, ii, :] = Es_full[ii, :, :] * self.Xr[ny, nx, ii]
             else:
                 Exception('Function size is wrong ')
 
-            #add delta L2 (down) + conditioning
+            # add delta L2 (down) + conditioning
             Es_full = np.zeros((N, L1, L2, L3, L4))
             if L2 == 1:
-                Es_full[:, :, 0, :, :] = A[:, :, :, :]*self.Xd[ny, nx, 0]
+                Es_full[:, :, 0, :, :] = A[:, :, :, :] * self.Xd[ny, nx, 0]
             elif L2 == N:
                 for ii in range(L2):
-                    Es_full[ii, :, ii, :, :] = A[ii, :, :, :]*self.Xd[ny, nx, ii]
+                    Es_full[ii, :, ii, :, :] = A[ii, :, :, :] * self.Xd[ny, nx, ii]
             else:
                 Exception('Function size is wrong ')
 
@@ -1665,110 +1664,110 @@ class otn2d:
         r"""
         Creates environment for layers of peps; from top.
         """
-        self.rhoT = [1]*(self.Ny+1)
-        self.rhoT_overlap   = [1]*(self.Ny+1)
-        self.rhoT_discarded = [0]*(self.Ny+1)
+        self.rhoT = [1] * (self.Ny + 1)
+        self.rhoT_overlap = [1] * (self.Ny + 1)
+        self.rhoT_discarded = [0] * (self.Ny + 1)
 
         self.rhoT[-1] = mps.MPS(d=1, L=self.Nx, Dmax=1, initial='X')
-        for ny in range(self.Ny-1, -1, -1):
+        for ny in range(self.Ny - 1, -1, -1):
             At = mps.MPO(L=self.Nx)
-            for nx in range(self.Nx):  ## trace physical to form mpo
-                W = np.sum(self._peps_tensor(ny, nx), axis = 0)
+            for nx in range(self.Nx):  # trace physical to form mpo
+                W = np.sum(self._peps_tensor(ny, nx), axis=0)
                 At.set_direct(W, nx)
-            self.rhoT[ny] = self.rhoT[ny+1].copy()
-            self.rhoT[ny].apply_mpo(At, Hconj = True)
+            self.rhoT[ny] = self.rhoT[ny + 1].copy()
+            self.rhoT[ny].apply_mpo(At, Hconj=True)
             self.rhoT_overlap[ny] = self.rhoT[ny].compress_mps(Dmax=Dmax, tolS=tolS, tolV=tolV,
-                                                               max_sweeps=max_sweeps, 
-                                                               graduate_truncation=graduate_truncation, 
+                                                               max_sweeps=max_sweeps,
+                                                               graduate_truncation=graduate_truncation,
                                                                verbose=False)
             self.rhoT_discarded[ny] = max(self.rhoT[ny].discarded)
-            #self.rhoT[ny].normC = 1.0
+            # self.rhoT[ny].normC = 1.0
 
     def _setup_rhoB(self, graduate_truncation=True, Dmax=32, tolS=1e-16, tolV=1e-10, max_sweeps=20):
         r"""
         Creates environment for layers of peps; from bottom.
         """
-        self.rhoB = [1]*(self.Ny+1)
-        self.rhoB_overlap   = [1]*(self.Ny+1)
-        self.rhoB_discarded = [0]*(self.Ny+1)
+        self.rhoB = [1] * (self.Ny + 1)
+        self.rhoB_overlap = [1] * (self.Ny + 1)
+        self.rhoB_discarded = [0] * (self.Ny + 1)
 
         self.rhoB[0] = mps.MPS(d=1, L=self.Nx, Dmax=1, initial='X')
         for ny in range(self.Ny):
             At = mps.MPO(L=self.Nx)
-            for nx in range(self.Nx):  ## trace physical to form mpo
-                W = np.sum(self._peps_tensor(ny, nx), axis = 0)
+            for nx in range(self.Nx):  # trace physical to form mpo
+                W = np.sum(self._peps_tensor(ny, nx), axis=0)
                 At.set_direct(W, nx)
-            self.rhoB[ny+1] = self.rhoB[ny].copy()
-            self.rhoB[ny+1].apply_mpo(At, Hconj = False)
-            self.rhoB_overlap[ny+1] = self.rhoB[ny+1].compress_mps(Dmax=Dmax, tolS=tolS, tolV=tolV,
-                                                                   max_sweeps=max_sweeps, 
-                                                                   graduate_truncation=graduate_truncation, 
-                                                                   verbose=False)
-            self.rhoB_discarded[ny+1] = max(self.rhoB[ny+1].discarded)
-            #self.rhoB[ny+1].normC = 1.0
+            self.rhoB[ny + 1] = self.rhoB[ny].copy()
+            self.rhoB[ny + 1].apply_mpo(At, Hconj=False)
+            self.rhoB_overlap[ny + 1] = self.rhoB[ny + 1].compress_mps(Dmax=Dmax, tolS=tolS, tolV=tolV,
+                                                                       max_sweeps=max_sweeps,
+                                                                       graduate_truncation=graduate_truncation,
+                                                                       verbose=False)
+            self.rhoB_discarded[ny + 1] = max(self.rhoB[ny + 1].discarded)
+            # self.rhoB[ny + 1].normC = 1.0
 
     def _setup_rhoL(self, graduate_truncation=True, Dmax=32, tolS=1e-16, tolV=1e-10, max_sweeps=20):
         r"""
         Creates environment for layers of peps; from left.
         """
-        self.rhoL = [1]*(self.Nx+1)
-        self.rhoL_overlap   = [1]*(self.Nx+1)
-        self.rhoL_discarded = [0]*(self.Nx+1)
+        self.rhoL = [1] * (self.Nx + 1)
+        self.rhoL_overlap = [1] * (self.Nx + 1)
+        self.rhoL_discarded = [0] * (self.Nx + 1)
 
         self.rhoL[0] = mps.MPS(d=1, L=self.Ny, Dmax=1, initial='X')
         for nx in range(self.Nx):
             At = mps.MPO(L=self.Ny)
-            for ny in range(self.Ny):  ## trace physical to form mpo
-                W = np.sum(self._peps_tensor(ny, nx), axis = 0)
+            for ny in range(self.Ny):  # trace physical to form mpo
+                W = np.sum(self._peps_tensor(ny, nx), axis=0)
                 W = np.transpose(W, (3, 0, 1, 2))
                 At.set_direct(W, ny)
-            self.rhoL[nx+1] = self.rhoL[nx].copy()
-            self.rhoL[nx+1].apply_mpo(At, Hconj = True)
-            self.rhoL_overlap[nx+1] = self.rhoL[nx+1].compress_mps(Dmax=Dmax, tolS=tolS, tolV=tolV,
-                                                                   max_sweeps=max_sweeps,
-                                                                   graduate_truncation=graduate_truncation,
-                                                                   verbose=False)
-            self.rhoL_discarded[nx+1] = max(self.rhoL[nx+1].discarded)
-            #self.rhoL[nx+1].normC = 1.0
+            self.rhoL[nx + 1] = self.rhoL[nx].copy()
+            self.rhoL[nx + 1].apply_mpo(At, Hconj=True)
+            self.rhoL_overlap[nx + 1] = self.rhoL[nx + 1].compress_mps(Dmax=Dmax, tolS=tolS, tolV=tolV,
+                                                                       max_sweeps=max_sweeps,
+                                                                       graduate_truncation=graduate_truncation,
+                                                                       verbose=False)
+            self.rhoL_discarded[nx + 1] = max(self.rhoL[nx + 1].discarded)
+            # self.rhoL[nx + 1].normC = 1.0
 
     def _setup_rhoR(self, graduate_truncation=True, Dmax=32, tolS=1e-16, tolV=1e-10, max_sweeps=20):
         r"""
         Creates environment for layers of peps; from right.
         """
-        self.rhoR = [1]*(self.Nx+1)
-        self.rhoR_overlap   = [1]*(self.Nx+1)
-        self.rhoR_discarded = [0]*(self.Nx+1)
+        self.rhoR = [1] * (self.Nx + 1)
+        self.rhoR_overlap = [1] * (self.Nx + 1)
+        self.rhoR_discarded = [0] * (self.Nx + 1)
 
         self.rhoR[-1] = mps.MPS(d=1, L=self.Ny, Dmax=1, initial='X')
-        for nx in range(self.Nx-1, -1, -1):
+        for nx in range(self.Nx - 1, -1, -1):
             At = mps.MPO(L=self.Ny)
-            for ny in range(self.Ny):  ## trace physical to form mpo
-                W = np.sum(self._peps_tensor(ny, nx), axis = 0)
+            for ny in range(self.Ny):  # trace physical to form mpo
+                W = np.sum(self._peps_tensor(ny, nx), axis=0)
                 W = np.transpose(W, (3, 0, 1, 2))
                 At.set_direct(W, ny)
-            self.rhoR[nx] = self.rhoR[nx+1].copy()
-            self.rhoR[nx].apply_mpo(At, Hconj = False)
+            self.rhoR[nx] = self.rhoR[nx + 1].copy()
+            self.rhoR[nx].apply_mpo(At, Hconj=False)
             self.rhoR_overlap[nx] = self.rhoR[nx].compress_mps(Dmax=Dmax, tolS=tolS, tolV=tolV,
                                                                max_sweeps=max_sweeps,
                                                                graduate_truncation=graduate_truncation,
                                                                verbose=False)
             self.rhoR_discarded[nx] = max(self.rhoR[nx].discarded)
-            #self.rhoR[nx].normC = 1.0
+            # self.rhoR[nx].normC = 1.0
 
     def _setup_RR(self, vind, ny):
         r"""
         Creates environment to contract layer from right.
         """
-        RRl = [{ () : np.ones((1, 1)) }]
-        for nx in range(self.Nx-1, 0, -1):
-            W = np.sum(self._peps_tensor(ny, nx), axis = 0)
+        RRl = [{(): np.ones((1, 1))}]
+        for nx in range(self.Nx - 1, 0, -1):
+            W = np.sum(self._peps_tensor(ny, nx), axis=0)
             RRnew = {}
             for ind in vind:
-                tind = tuple(ind[nx+1:])
+                tind = tuple(ind[nx + 1:])
                 if tind not in RRnew:
-                    T = np.tensordot(self.rhoT[ny+1].A[nx], RRl[-1][tind[1:]], axes=(2, 0))
+                    T = np.tensordot(self.rhoT[ny + 1].A[nx], RRl[-1][tind[1:]], axes=(2, 0))
                     tempR = np.tensordot(T, W[:, :, :, tind[0]], axes=([1, 2], [1, 2]))
-                    tempR *= (1/mps.nfactor(tempR))
+                    tempR *= (1 / mps.nfactor(tempR))
                     RRnew[tind] = tempR
             RRl.append(RRnew)
         return RRl
@@ -1780,19 +1779,19 @@ class otn2d:
         Returns magnitude of relative 'negativnes', as a red flag.
         """
         T1 = np.tensordot(RL, AT, axes=(0, 0))
-        T2 = np.tensordot(T1, RR, axes= (1, 0))
-        Pn = np.tensordot(A, T2, axes = ((1, 2), (0, 1)))
+        T2 = np.tensordot(T1, RR, axes=(1, 0))
+        Pn = np.tensordot(A, T2, axes=((1, 2), (0, 1)))
         mPn = Pn.min()  # error handling: negative probabilities
         if mPn < 0.:
-            ind = (Pn<np.abs(mPn))
+            ind = (Pn < np.abs(mPn))
             Pn[ind] = np.abs(mPn)
             mPn *= np.sum(ind)
         no = np.sum(Pn)
         if no > 0.:
-            Pn  *= 1./no
-            mPn *= 1./no
+            Pn *= 1. / no
+            mPn *= 1. / no
         else:   # if all zeros
-            Pn += 1./len(Pn)
+            Pn += 1. / len(Pn)
             mPn = -1
         return Pn, mPn
 
@@ -1806,8 +1805,8 @@ class otn2d:
         self.Xd = np.ones((self.Ny, self.Nx, np.max(self.ld)))
         self.Xl = np.ones((self.Ny, self.Nx, np.max(self.lr)))
         self.Xr = np.ones((self.Ny, self.Nx, np.max(self.lr)))
-        self.overlaps_ud = np.empty(shape=[0, self.Ny-1])
-        self.overlaps_lr = np.empty(shape=[0, self.Nx-1])
+        self.overlaps_ud = np.empty(shape=[0, self.Ny - 1])
+        self.overlaps_lr = np.empty(shape=[0, self.Nx - 1])
         # here they are associated with legs of peps tensor A[ny][nx]
         # corresponding Xu, Xd; and Xl, Xr should combine to identity
 
@@ -1818,44 +1817,44 @@ class otn2d:
         """
         max_scale = mps.nfactor(np.sqrt(max_scale))
         if direction == 'ud':
-            self._setup_rhoT(graduate_truncation=graduate_truncation, 
+            self._setup_rhoT(graduate_truncation=graduate_truncation,
                              Dmax=Dmax, tolS=tolS,
                              tolV=tolV, max_sweeps=max_sweeps)  # is left canonical
-            self._setup_rhoB(graduate_truncation=graduate_truncation, 
+            self._setup_rhoB(graduate_truncation=graduate_truncation,
                              Dmax=Dmax, tolS=tolS,
                              tolV=tolV, max_sweeps=max_sweeps)  # is left canonical
-            overlaps = np.ones((2, self.Ny-1))
+            overlaps = np.ones((2, self.Ny - 1))
             for ny in range(1, self.Ny):
                 for nx in range(self.Nx):
                     self.rhoB[ny].update_RL_mix(self.rhoT[ny], nx)
-                    self.rhoB[ny].R[nx+1] *= (1/np.linalg.norm(self.rhoB[ny].R[nx+1]))
+                    self.rhoB[ny].R[nx + 1] *= (1 / np.linalg.norm(self.rhoB[ny].R[nx + 1]))
 
-                for nx in range(self.Nx-1, -1, -1):
+                for nx in range(self.Nx - 1, -1, -1):
                     env = self.rhoB[ny].bond_env_mix(self.rhoT[ny], nx)
-                    _ , scale = scipy.linalg.matrix_balance(env, permute=False, separate=True)
-                    scale = np.minimum(np.maximum(scale[0], 1/max_scale), max_scale)
+                    _, scale = scipy.linalg.matrix_balance(env, permute=False, separate=True)
+                    scale = np.minimum(np.maximum(scale[0], 1 / max_scale), max_scale)
 
                     o1 = self.rhoB[ny].expectation_mix(self.rhoT[ny], nx)
                     o1B = np.linalg.norm(self.rhoB[ny].A[nx])
                     o1T = np.linalg.norm(self.rhoT[ny].A[nx])
-                    o1 *= 1/(o1B*o1T)
+                    o1 *= 1 / (o1B * o1T)
 
                     self.rhoB[ny].apply_diagonalO(scale, nx)
-                    self.rhoT[ny].apply_diagonalO(1/scale, nx)
+                    self.rhoT[ny].apply_diagonalO(1 / scale, nx)
 
                     o2B = np.linalg.norm(self.rhoB[ny].A[nx])
                     o2T = np.linalg.norm(self.rhoT[ny].A[nx])
                     o2 = self.rhoB[ny].expectation_mix(self.rhoT[ny], nx)
-                    o2 *= 1/(o2B*o2T)
+                    o2 *= 1 / (o2B * o2T)
 
-                    if o1 < overlaps[0, ny-1]:
-                        overlaps[0, ny-1] = o1
-                        overlaps[1, ny-1] = max(o1, o2)
+                    if o1 < overlaps[0, ny - 1]:
+                        overlaps[0, ny - 1] = o1
+                        overlaps[1, ny - 1] = max(o1, o2)
 
-                    #if o2 > o1:
-                    self.Xd[ny-1, nx, :self.ld[ny-1, nx]] *= scale
-                    self.Xu[ny, nx, :self.ld[ny-1, nx]] *= 1/scale
-                    #else:
+                    # if o2 > o1:
+                    self.Xd[ny - 1, nx, :self.ld[ny - 1, nx]] *= scale
+                    self.Xu[ny, nx, :self.ld[ny - 1, nx]] *= 1 / scale
+                    # else:
                     #    self.rhoB[ny].apply_diagonalO(1/scale, nx)
                     #    self.rhoT[ny].apply_diagonalO(scale, nx)
 
@@ -1865,87 +1864,87 @@ class otn2d:
                         self.rhoT[ny].orth_right(nx)
                         self.rhoT[ny].attach_AC()
                         self.rhoB[ny].update_RR_mix(self.rhoT[ny], nx)
-                        self.rhoB[ny].R[nx] *= (1/np.linalg.norm(self.rhoB[ny].R[nx]))
+                        self.rhoB[ny].R[nx] *= (1 / np.linalg.norm(self.rhoB[ny].R[nx]))
 
                 for nx in range(self.Nx):
                     env = self.rhoB[ny].bond_env_mix(self.rhoT[ny], nx)
-                    _ , scale = scipy.linalg.matrix_balance(env, permute=False, separate=True)
-                    scale = np.minimum(np.maximum(scale[0], 1/max_scale), max_scale)
+                    _, scale = scipy.linalg.matrix_balance(env, permute=False, separate=True)
+                    scale = np.minimum(np.maximum(scale[0], 1 / max_scale), max_scale)
 
                     o1 = self.rhoB[ny].expectation_mix(self.rhoT[ny], nx)
                     o1B = np.linalg.norm(self.rhoB[ny].A[nx])
                     o1T = np.linalg.norm(self.rhoT[ny].A[nx])
-                    o1 *= 1/(o1B*o1T)
+                    o1 *= 1 / (o1B * o1T)
 
                     self.rhoB[ny].apply_diagonalO(scale, nx)
-                    self.rhoT[ny].apply_diagonalO(1/scale, nx)
+                    self.rhoT[ny].apply_diagonalO(1 / scale, nx)
 
                     o2B = np.linalg.norm(self.rhoB[ny].A[nx])
                     o2T = np.linalg.norm(self.rhoT[ny].A[nx])
                     o2 = self.rhoB[ny].expectation_mix(self.rhoT[ny], nx)
-                    o2 *= 1/(o2B*o2T)
+                    o2 *= 1 / (o2B * o2T)
 
-                    if o1 < overlaps[0, ny-1]:
-                        overlaps[0, ny-1] = o1
-                        overlaps[1, ny-1] = max(o1, o2)
+                    if o1 < overlaps[0, ny - 1]:
+                        overlaps[0, ny - 1] = o1
+                        overlaps[1, ny - 1] = max(o1, o2)
 
-                    #if o2 > o1:
-                    self.Xd[ny-1, nx, :self.ld[ny-1, nx]] *= scale
-                    self.Xu[ny, nx, :self.ld[ny-1, nx]] *= 1/scale
-                    #else:
+                    # if o2 > o1:
+                    self.Xd[ny - 1, nx, :self.ld[ny - 1, nx]] *= scale
+                    self.Xu[ny, nx, :self.ld[ny - 1, nx]] *= 1 / scale
+                    # else:
                     #    self.rhoB[ny].apply_diagonalO(1/scale, nx)
                     #    self.rhoT[ny].apply_diagonalO(scale, nx)
 
-                    if nx < self.Nx-1:
+                    if nx < self.Nx - 1:
                         self.rhoB[ny].orth_left(nx)
                         self.rhoB[ny].attach_CA()
                         self.rhoT[ny].orth_left(nx)
                         self.rhoT[ny].attach_CA()
                         self.rhoB[ny].update_RL_mix(self.rhoT[ny], nx)
-                        self.rhoB[ny].R[nx+1] *= (1/np.linalg.norm(self.rhoB[ny].R[nx+1]))
+                        self.rhoB[ny].R[nx + 1] *= (1 / np.linalg.norm(self.rhoB[ny].R[nx + 1]))
 
             self.overlaps_ud = np.vstack([self.overlaps_ud, overlaps])
             self.rhoB = []
 
         elif direction == 'lr':
-            self._setup_rhoL(graduate_truncation=graduate_truncation, 
-                            Dmax=Dmax, tolS=tolS,
-                            tolV=tolV, max_sweeps=max_sweeps)  # is left canonical
-            self._setup_rhoR(graduate_truncation=graduate_truncation, 
-                            Dmax=Dmax, tolS=tolS,
-                            tolV=tolV, max_sweeps=max_sweeps)  # is left canonical
-            overlaps = np.ones((2, self.Nx-1))
+            self._setup_rhoL(graduate_truncation=graduate_truncation,
+                             Dmax=Dmax, tolS=tolS,
+                             tolV=tolV, max_sweeps=max_sweeps)  # is left canonical
+            self._setup_rhoR(graduate_truncation=graduate_truncation,
+                             Dmax=Dmax, tolS=tolS,
+                             tolV=tolV, max_sweeps=max_sweeps)  # is left canonical
+            overlaps = np.ones((2, self.Nx - 1))
             for nx in range(1, self.Nx):
                 for ny in range(self.Ny):
                     self.rhoL[nx].update_RL_mix(self.rhoR[nx], ny)
-                    self.rhoL[nx].R[ny+1] *= (1/np.linalg.norm(self.rhoR[nx].R[ny+1]))
+                    self.rhoL[nx].R[ny + 1] *= (1 / np.linalg.norm(self.rhoR[nx].R[ny + 1]))
 
-                for ny in range(self.Ny-1, -1, -1):
+                for ny in range(self.Ny - 1, -1, -1):
                     env = self.rhoL[nx].bond_env_mix(self.rhoR[nx], ny)
-                    _ , scale = scipy.linalg.matrix_balance(env, permute = False, separate = True)
-                    scale = np.minimum(np.maximum(scale[0], 1/max_scale), max_scale)
+                    _, scale = scipy.linalg.matrix_balance(env, permute=False, separate=True)
+                    scale = np.minimum(np.maximum(scale[0], 1 / max_scale), max_scale)
 
                     o1 = self.rhoL[nx].expectation_mix(self.rhoR[nx], ny)
                     o1L = np.linalg.norm(self.rhoL[nx].A[ny])
                     o1R = np.linalg.norm(self.rhoR[nx].A[ny])
-                    o1 *= 1/(o1L*o1R)
+                    o1 *= 1 / (o1L * o1R)
 
                     self.rhoL[nx].apply_diagonalO(scale, ny)
-                    self.rhoR[nx].apply_diagonalO(1/scale, ny)
+                    self.rhoR[nx].apply_diagonalO(1 / scale, ny)
                     o2L = np.linalg.norm(self.rhoL[nx].A[ny])
                     o2R = np.linalg.norm(self.rhoR[nx].A[ny])
                     o2 = self.rhoL[nx].expectation_mix(self.rhoR[nx], ny)
-                    o2 *= 1/(o2L*o2R)
+                    o2 *= 1 / (o2L * o2R)
 
-                    if o1 < overlaps[0, nx-1]:
-                        overlaps[0, nx-1] = o1
-                        overlaps[1, nx-1] = max(o1, o2)
+                    if o1 < overlaps[0, nx - 1]:
+                        overlaps[0, nx - 1] = o1
+                        overlaps[1, nx - 1] = max(o1, o2)
 
                     if o2 > o1:
-                        self.Xr[ny, nx-1, :self.lr[ny, nx-1]] *= scale
-                        self.Xl[ny, nx, :self.lr[ny, nx-1]] *= 1/scale
+                        self.Xr[ny, nx - 1, :self.lr[ny, nx - 1]] *= scale
+                        self.Xl[ny, nx, :self.lr[ny, nx - 1]] *= 1 / scale
                     else:
-                        self.rhoL[nx].apply_diagonalO(1/scale, ny)
+                        self.rhoL[nx].apply_diagonalO(1 / scale, ny)
                         self.rhoR[nx].apply_diagonalO(scale, ny)
 
                     if ny > 0:
@@ -1954,43 +1953,43 @@ class otn2d:
                         self.rhoR[nx].orth_right(ny)
                         self.rhoR[nx].attach_AC()
                         self.rhoL[nx].update_RR_mix(self.rhoR[nx], ny)
-                        self.rhoL[nx].R[ny] *= (1/np.linalg.norm(self.rhoR[nx].R[ny]))
+                        self.rhoL[nx].R[ny] *= (1 / np.linalg.norm(self.rhoR[nx].R[ny]))
 
                 for ny in range(self.Ny):
                     env = self.rhoL[nx].bond_env_mix(self.rhoR[nx], ny)
-                    _ , scale = scipy.linalg.matrix_balance(env, permute = False, separate = True)
-                    scale = np.minimum(np.maximum(scale[0], 1/max_scale), max_scale)
+                    _, scale = scipy.linalg.matrix_balance(env, permute=False, separate=True)
+                    scale = np.minimum(np.maximum(scale[0], 1 / max_scale), max_scale)
 
                     o1 = self.rhoL[nx].expectation_mix(self.rhoR[nx], ny)
                     o1L = np.linalg.norm(self.rhoL[nx].A[ny])
                     o1R = np.linalg.norm(self.rhoR[nx].A[ny])
-                    o1 *= 1/(o1L*o1R)
+                    o1 *= 1 / (o1L * o1R)
 
                     self.rhoL[nx].apply_diagonalO(scale, ny)
-                    self.rhoR[nx].apply_diagonalO(1/scale, ny)
+                    self.rhoR[nx].apply_diagonalO(1 / scale, ny)
                     o2L = np.linalg.norm(self.rhoL[nx].A[ny])
                     o2R = np.linalg.norm(self.rhoR[nx].A[ny])
                     o2 = self.rhoL[nx].expectation_mix(self.rhoR[nx], ny)
-                    o2 *= 1/(o2L*o2R)
+                    o2 *= 1 / (o2L * o2R)
 
-                    if o1 < overlaps[0, nx-1]:
-                        overlaps[0, nx-1] = o1
-                        overlaps[1, nx-1] = max(o1, o2)
+                    if o1 < overlaps[0, nx - 1]:
+                        overlaps[0, nx - 1] = o1
+                        overlaps[1, nx - 1] = max(o1, o2)
 
                     if o2 > o1:
-                        self.Xr[ny, nx-1, :self.lr[ny, nx-1]] *= scale
-                        self.Xl[ny, nx, :self.lr[ny, nx-1]] *= 1/scale
+                        self.Xr[ny, nx - 1, :self.lr[ny, nx - 1]] *= scale
+                        self.Xl[ny, nx, :self.lr[ny, nx - 1]] *= 1 / scale
                     else:
-                        self.rhoL[nx].apply_diagonalO(1/scale, ny)
+                        self.rhoL[nx].apply_diagonalO(1 / scale, ny)
                         self.rhoR[nx].apply_diagonalO(scale, ny)
 
-                    if ny < self.Ny-1:
+                    if ny < self.Ny - 1:
                         self.rhoL[nx].orth_left(ny)
                         self.rhoL[nx].attach_CA()
                         self.rhoR[nx].orth_left(ny)
                         self.rhoR[nx].attach_CA()
                         self.rhoL[nx].update_RL_mix(self.rhoR[nx], ny)
-                        self.rhoL[nx].R[ny+1] *= (1/np.linalg.norm(self.rhoR[nx].R[ny+1]))
+                        self.rhoL[nx].R[ny + 1] *= (1 / np.linalg.norm(self.rhoR[nx].R[ny + 1]))
 
             self.overlaps_lr = np.vstack([self.overlaps_lr, overlaps])
             self.rhoL, self.rhoR = [], []
@@ -2005,7 +2004,7 @@ class otn2d:
         """
         self.d = {}  # dict keeping excitations
         self.invd = {}  # dict giving partial inverse for better searching
-        self.el = [[]] # list of excitations for all branches
+        self.el = [[]]  # list of excitations for all branches
         self.free_d = 0  # first free index in dict
 
     def _reset_adj(self, J, Nx, Ny, ind):
@@ -2019,8 +2018,8 @@ class otn2d:
                     Nc = len(ind[ny][nx])
                     decode = self._cluster_configurations(Nc)
                     # has to be consistent with cluster_configurations -- but replace 0 <--> 1
-                    decode = 1-decode #[:,::-1]
-                    decode = decode.astype(dtype = bool, copy = False)
+                    decode = 1 - decode  # [:,::-1]
+                    decode = decode.astype(dtype=bool, copy=False)
                     xor2ind_cluster = []
                     for ii in range(2**Nc):
                         xor2ind_cluster.append(ind[ny][nx][decode[ii]])
@@ -2043,7 +2042,7 @@ class otn2d:
         If shape is in the dictionary, return its key; else add it to the dictionary and returns new key.
         """
         droplet = (dpos, dstate)
-        sh = self._exc_get_sh(droplet) # semi-hash
+        sh = self._exc_get_sh(droplet)  # semi-hash
         newkey = self.free_d  # use if neccesary
         if sh in self.invd:
             suspects = self.invd[sh]
@@ -2062,7 +2061,7 @@ class otn2d:
         r"""
         Recursively removes sub-excitations with too large energy.
         """
-        nse = [] # new subexcitations list
+        nse = []  # new subexcitations list
         for se in exc[1]:
             if (se[0][0] <= maxdE):
                 nse.append(self._exc_cut_energy(se, maxdE - se[0][0]))
@@ -2072,20 +2071,20 @@ class otn2d:
         r"""
         Translates excitation (format as kept in dictionary) to mask for adjacency matrix
         """
-        return np.hstack([ self.xor2ind[nn][ds] for nn, ds in zip(*exc)])
+        return np.hstack([self.xor2ind[nn][ds] for nn, ds in zip(*exc)])
 
     def _exc_elementary(self, exc):
         r"""
         Check if excitation is elementary (single-connected).
         """
-        #exc = (dpos, dstate)
+        # exc = (dpos, dstate)
         if self.mode == 'Ising':
             exci = self._exc_xor2ind(exc)
             gr, rest = exci[:1], exci[1:]  # starting point
             while (gr.size > 0) and (rest.size > 0):
-                ind  = np.any(self.adj[gr, :][:, rest], axis=0)
-                #ind  = np.any(self.adj[gr, :][:, rest].toarray(), axis=0)  is adj is sparse
-                gr   = rest[ind]
+                ind = np.any(self.adj[gr, :][:, rest], axis=0)
+                # ind  = np.any(self.adj[gr, :][:, rest].toarray(), axis=0)  is adj is sparse
+                gr = rest[ind]
                 rest = rest[~ind]
             return (rest.size == 0)   # if rest.size == 0 then it is connected, else if is not connected
         elif self.mode == 'RMF':
@@ -2097,11 +2096,11 @@ class otn2d:
                 rt_ny = rest // self.adj_Nx
                 lg, lr = gr.size, rest.size
                 distance = np.abs(gr_nx.reshape(lg, 1) - rt_nx.reshape(1, lr)) + \
-                        np.abs(gr_ny.reshape(lg, 1) - rt_ny.reshape(1, lr))
-                ind  = np.any(distance==1, axis=0)
-                gr   = rest[ind]
+                    np.abs(gr_ny.reshape(lg, 1) - rt_ny.reshape(1, lr))
+                ind = np.any(distance == 1, axis=0)
+                gr = rest[ind]
                 rest = rest[~ind]
-            return (rest.size == 0) # if rest.size == 0 then it is connected, else if is not connected
+            return (rest.size == 0)  # if rest.size == 0 then it is connected, else if is not connected
 
     def _exc_overlap(self, ie1, ie2):
         r"""
@@ -2120,14 +2119,14 @@ class otn2d:
             exc2 = self._exc_xor2ind(exc2)
             return np.any(self.adj[exc1, :][:, exc2])
         elif self.mode == 'RMF':
-            ## overlap if nearest-neighbours
+            # overlap if nearest-neighbours
             nx1 = np.mod(exc1[0], self.adj_Nx)
             ny1 = exc1[0] // self.adj_Nx
             nx2 = np.mod(exc2[0], self.adj_Nx)
             ny2 = exc2[0] // self.adj_Nx
             l1, l2 = nx1.size, nx2.size
             distance = np.abs(nx1.reshape(l1, 1) - nx2.reshape(1, l2)) + \
-                    np.abs(ny1.reshape(l1, 1) - ny2.reshape(1, l2))
+                np.abs(ny1.reshape(l1, 1) - ny2.reshape(1, l2))
             return np.any(distance <= 1)
 
     def _exc_hd(self, dstate):
@@ -2137,7 +2136,7 @@ class otn2d:
         if self.mode == 'Ising':
             return len(dstate)
         elif self.mode == 'RMF':
-            return sum( bin(st).count('1') for st in dstate)
+            return sum(bin(st).count('1') for st in dstate)
 
     def _exc_hd_comp(self, ie1, ie2):
         r"""
@@ -2159,7 +2158,7 @@ class otn2d:
                 elif exc1[0][n1] < exc2[0][n2]:
                     hd += bin(exc1[1][n1]).count('1')
                     n1 += 1
-                else:  #exc1[0][n1] > exc2[0][n2]
+                else:  # exc1[0][n1] > exc2[0][n2]
                     hd += bin(exc2[1][n2]).count('1')
                     n2 += 1
             for ii in range(n1, l1):
@@ -2176,13 +2175,13 @@ class otn2d:
                 elif exc1[0][n1] < exc2[0][n2]:
                     n1 += 1
                     hd += 1
-                else:  #exc1[0][n1] > exc2[0][n2]
+                else:  # exc1[0][n1] > exc2[0][n2]
                     n2 += 1
                     hd += 1
             if (n1 < l1):
-                hd += l1-n1
+                hd += l1 - n1
             elif (n2 < l2):
-                hd += l2-n2
+                hd += l2 - n2
         return hd
 
     def _exc_merge(self, ie1, ie2):
@@ -2200,8 +2199,8 @@ class otn2d:
 
         l1 = len(dpos1)
         l2 = len(dpos2)
-        dpos = np.zeros(l1+l2, dtype=np.int)
-        dstate = np.zeros(l1+l2, dtype=np.int)
+        dpos = np.zeros(l1 + l2, dtype=np.int)
+        dstate = np.zeros(l1 + l2, dtype=np.int)
         n1 = 0
         n2 = 0
         n = 0
@@ -2218,20 +2217,20 @@ class otn2d:
                 dstate[n] = dstate1[n1]
                 n1 += 1
                 n += 1
-            else:  #dpos1[n1] > dpos2[n2]
+            else:  # dpos1[n1] > dpos2[n2]
                 dpos[n] = dpos2[n2]
                 dstate[n] = dstate2[n2]
                 n2 += 1
                 n += 1
 
         if (n1 < l1):
-            dpos[n:n+l1-n1] = dpos1[n1:]
-            dstate[n:n+l1-n1] = dstate1[n1:]
-            n = n+l1-n1
+            dpos[n:n + l1 - n1] = dpos1[n1:]
+            dstate[n:n + l1 - n1] = dstate1[n1:]
+            n = n + l1 - n1
         elif (n2 < l2):
-            dpos[n:n+l2-n2] = dpos2[n2:]
-            dstate[n:n+l2-n2] = dstate2[n2:]
-            n = n+l2-n2
+            dpos[n:n + l2 - n2] = dpos2[n2:]
+            dstate[n:n + l2 - n2] = dstate2[n2:]
+            n = n + l2 - n2
         dpos = dpos[:n]
         dstate = dstate[:n]
         return dpos, dstate
@@ -2274,7 +2273,7 @@ class otn2d:
             uq.append(self._exc_get_unique_keys(exc[1]))
         return list(set(itertools.chain(*uq)))
 
-    def _exc_unpack(self, max_dEng = 0., max_states=np.inf):
+    def _exc_unpack(self, max_dEng=0., max_states=np.inf):
         if self.excitations_encoding == 1:
             return self._exc_unpack_v1(self.el, max_dEng=max_dEng, max_states=max_states)
         elif self.excitations_encoding == 2:
@@ -2289,30 +2288,30 @@ class otn2d:
         Return all possible excitation energy states.
         Up to max_dEng and max_states.
         """
-        Eng   = [0.0]
-        #Pn   = [1.0]
-        flip  = [[]]
-        #ne = ((conf_dEng, di, first, last, dP),  tuple(sel))
+        Eng = [0.0]
+        # Pn = [1.0]
+        flip = [[]]
+        # ne = ((conf_dEng, di, first, last, dP),  tuple(sel))
         # excitations corresponding to the branch with Eng = [0.0] -- i.e. at the last site
-        excs = [[ ((0, 0, -1, self.Nx_model*self.Ny_model-1, 1), tuple(el)) ]]
+        excs = [[((0, 0, -1, self.Nx_model * self.Ny_model - 1, 1), tuple(el))]]
 
-        for nn in range(self.Nx_model*self.Ny_model-1, -1, -1):
+        for nn in range(self.Nx_model * self.Ny_model - 1, -1, -1):
             kk = 0
             while kk < len(Eng):
                 for ee in excs[kk][-1][1]:
-                    if (ee[0][3] == nn) and (Eng[kk] + ee[0][0]) <= max_dEng :
+                    if (ee[0][3] == nn) and (Eng[kk] + ee[0][0]) <= max_dEng:
                         Eng.append(Eng[kk] + ee[0][0])
-                        #Pn.append(Pn[kk] * ee[0][4]) # ee[0][4] = dP
+                        # Pn.append(Pn[kk] * ee[0][4]) # ee[0][4] = dP
                         newflip = flip[kk][:]
                         newflip.append(ee[0][1])
-                        flip.append( newflip )  ## ee[0][1] -> shape of exc from dict
-                        excs.append( excs[kk][:] )
+                        flip.append(newflip)  # ee[0][1] -> shape of exc from dict
+                        excs.append(excs[kk][:])
                         excs[-1].append(ee)
-                    elif  ee[0][3] > nn:
+                    elif ee[0][3] > nn:
                         break
                 kk += 1
 
-            if len(Eng) > max_states: # if to many states
+            if len(Eng) > max_states:  # if to many states
                 # throw away high-energy ones
                 order = np.array(Eng).argpartition(max_states)[:max_states]
                 Eng = [Eng[ii] for ii in order]
@@ -2322,7 +2321,7 @@ class otn2d:
             for kk in range(len(Eng)):
                 while excs[kk][-1][0][2] >= nn:
                     excs[kk].pop()
-        return np.array(Eng), flip, #, np.array(Pn),
+        return np.array(Eng), flip,  # , np.array(Pn),
 
     def _exc_unpack_v2(self, l, max_dEng=0., max_states=np.inf, one_layer=False):
         r"""
@@ -2332,9 +2331,9 @@ class otn2d:
         Return all possible excitation energy states.
         Up to max_dEng and max_states.
         """
-        Eng   = [0.0]
-        excs  = [l[:]]
-        flip =  [[]]
+        Eng = [0.0]
+        excs = [l[:]]
+        flip = [[]]
         notend = True
         while notend:
             notend = False
@@ -2343,14 +2342,14 @@ class otn2d:
                 if excs[kk]:
                     exc = excs[kk].pop()
                     if (Eng[kk] + exc[0][0]) <= max_dEng:
-                        Eng.append( Eng[kk] + exc[0][0] )
+                        Eng.append(Eng[kk] + exc[0][0])
                         newflip = flip[kk][:]
                         newflip.append(exc[0][1])
-                        flip.append( newflip )  ## ee[0][1] -> shape of exc from dict
+                        flip.append(newflip)  # ee[0][1] -> shape of exc from dict
                         newexc = []
                         for xx in excs[kk]:
                             if not self._exc_overlap(xx[0][1], exc[0][1]):
-                                ## in l1 keep only interactions which are independent
+                                # in l1 keep only interactions which are independent
                                 newexc.append(xx)
                         excs.append(newexc)
                         if not one_layer:
@@ -2358,7 +2357,7 @@ class otn2d:
                         if (not notend) or (newexc) or (excs[kk]):
                             notend = True
                 kk += 1
-            if len(Eng) > max_states: # if to many states
+            if len(Eng) > max_states:  # if to many states
                 # throw away high-energy ones
                 order = np.array(Eng).argpartition(max_states)[:max_states]
                 Eng = [Eng[ii] for ii in order]
@@ -2406,6 +2405,7 @@ class otn2d:
         for exc in el:
             Eng = exc[0][0]
             kk = self.d[exc[0][1]]
-            print((3*layer-3)*' '+"|- %0.4f "%(Eng)+' : '+' '.join(map(str, kk[0]))+' | '+' '.join(map(str, kk[1])))
+            print((3 * layer - 3) * ' ' + "|- %0.4f " % (Eng) + ' : ' +
+                  ' '.join(map(str, kk[0])) + ' | ' + ' '.join(map(str, kk[1])))
             # ' '.join(["%2d " % v for v in exc[0][1:]])
-            self._exc_print(exc[1], layer+1)
+            self._exc_print(exc[1], layer + 1)

@@ -88,7 +88,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     keep_time = time.time()
-    ins = search_gs_droplet(L=args.L, instance=args.ins, rot=args.r, beta=args.b, 
+    ins = search_gs_droplet(L=args.L, instance=args.ins, rot=args.r, beta=args.b,
                             D=args.D, M=args.M, relative_P_cutoff=args.P, precondition=args.pre)
     ins.logger.info('Total time : %.2f seconds', time.time() - keep_time)
 

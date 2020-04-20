@@ -123,7 +123,7 @@ if __name__ == "__main__":
     # saves before decoding excitations
     if args.s:
         file_name = os.path.join(os.path.dirname(__file__),
-                    './results/L=%1d_ins=%03d_r=%1d_beta=%0.2f_D=%1d_M=%1d_P=%0.2e_ee=%1d_dE=%0.3f_hd=%1d_pre=%1d.npy' \
+                    './results/L=%1d_ins=%03d_r=%1d_beta=%0.2f_D=%1d_M=%1d_P=%0.2e_ee=%1d_dE=%0.3f_hd=%1d_pre=%1d.npy'
                     % (args.L, args.ins, args.r, args.b, args.D, args.M, args.P, args.ee, args.dE, args.hd, args.pre))
         ins.save(file_name)
 
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     # display excitation energies
     print()
     print('Excitation energies:')
-    print(ins.energy-ins.energy[0])
+    print(ins.energy - ins.energy[0])
 
     # to display excitation tree, uncomment the lines below
     # print()

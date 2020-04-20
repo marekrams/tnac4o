@@ -18,7 +18,7 @@ def minimal_RMF(rot=0, beta=3,
     # defining a model
     Nx = 5
     Ny = 3
-    N = np.zeros((3, 5), dtype=int)+3
+    N = np.zeros((3, 5), dtype=int) + 3
     fun = {1: np.array([[0, 1, 1], [1, 0, 1], [1, 1, 0]]),  # penalty for neighbouring spins differing
            2: np.array([-1.5, 0, 1.5]),
            3: np.array([1.25, 0, -1.25])}

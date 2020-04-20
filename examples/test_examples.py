@@ -9,13 +9,13 @@ import os
 def test_e01():
     """ Minimal test of ground state search. """
     # expected energy for droplet instance 1 for L=128
-    expected_energy = -210.933333
+    expected_energy = -210.93333333
 
     ins = search_gs_droplet(rot=0, D=8, precondition=True)
-    assert(abs(expected_energy - ins.energy[0]) < 1e-6)
+    assert(abs(expected_energy - ins.energy[0]) < 1e-5)
 
     ins = search_gs_droplet(rot=3, D=8, precondition=False)
-    assert(abs(expected_energy - ins.energy[0]) < 1e-6)
+    assert(abs(expected_energy - ins.energy[0]) < 1e-5)
 
 
 def test_e02():

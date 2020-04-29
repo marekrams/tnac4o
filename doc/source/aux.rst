@@ -1,7 +1,7 @@
 aux
 ===
 
-.. automodule:: otn2d.aux
+.. automodule:: tnac4o.aux
    :members:
    :undoc-members:
    :show-inheritance:

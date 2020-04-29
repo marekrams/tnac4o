@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'otn2d'
+project = 'tnac4o'
 copyright = '2020, Marek M. Rams, Masoud Mohseni, Bartlomiej Gardas'
 author = 'Marek M. Rams, Masoud Mohseni, Bartlomiej Gardas'
 

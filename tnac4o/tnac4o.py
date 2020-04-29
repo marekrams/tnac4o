@@ -1,3 +1,17 @@
+# Copyright 2020 Marek M. Rams, Masoud Mohseni, Bartlomiej Gardas. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 r"""
 The main module of the package.
 It puts together the heuristics to solve
@@ -19,10 +33,10 @@ def load(file_name):
     Loads solution of an instance from a file.
 
     Args:
-        file_name (str): a path to file generated with method :meth:`otn2d.save`.
+        file_name (str): a path to file generated with method :meth:`tnac4o.save`.
 
     Returns:
-        instance of otn2d class. Couplings are not loaded -- they are not saved in the first place.
+        instance of tnac4o class. Couplings are not loaded -- they are not saved in the first place.
     """
     d = np.load(file_name, allow_pickle=True)
     Nx = d.item().get('Nx')
@@ -30,7 +44,7 @@ def load(file_name):
     Nc = d.item().get('Nc')
     beta = d.item().get('beta')
     mode = d.item().get('mode')
-    ins = otn2d(mode=mode, Nx=Nx, Ny=Ny, Nc=Nc, beta=beta)
+    ins = tnac4o(mode=mode, Nx=Nx, Ny=Ny, Nc=Nc, beta=beta)
     ins.energy = d.item().get('energy')
     ins.probability = d.item().get('probability')
     ins.degeneracy = d.item().get('degeneracy')
@@ -61,7 +75,7 @@ def load(file_name):
     return ins
 
 
-class otn2d:
+class tnac4o:
     r"""
     Main class which collects all the methods to solve a given instance and store the results.
 
@@ -88,8 +102,9 @@ class otn2d:
 
         ints Nx, Ny, Nc : lattice shape.
         beta (float): sets the inverse temperature used during the search.
-            It is the most relevant parameter, with larger beta allowing to better zoom in on low energy states,
-            but making tensor network contraction numerically less stable.
+            It is the most relevant parameter: larger beta allow better to zoom in on low energy states,
+            but make tensor network contraction numerically less stable. Optimal beta is instance dependent
+            and for different classes of instances it should be found experimentaly.
         J (others): couplings.
             For mode ``'Ising'``, it should be a list of :math:`[i, j, J_{ij}]`.
             For mode ``'RMF'``, it should be a dictionary with fields\:
@@ -99,7 +114,7 @@ class otn2d:
             respective elements of 'fun'. 'N' is an :math:`N_y \times N_x` nparray of int with variable ranges.
 
     Examples:
-        ins = otn2d.otn2d(mode='Ising', Nx=16, Ny=16, Nc=8, beta=beta, J=J) initialises a model which
+        ins = tnac4o.tnac4o(mode='Ising', Nx=16, Ny=16, Nc=8, beta=beta, J=J) initialises a model which
         includes interactions of a chimera graph C16 with 2048 spins,
         see e.g., https://docs.dwavesys.com/docs/latest/c_gs_4.html
 
@@ -142,7 +157,7 @@ class otn2d:
             elif self.Nc <= 9:
                 self.indtype = np.int16
             else:
-                raise('Single cluster is too large (this bound can be removed in otn2d.__init__).')
+                raise('Single cluster is too large (this bound can be removed in tnac4o.__init__).')
         elif self.mode == 'RMF':
             self.Nc = 1
             self.indtype = np.int8
@@ -151,7 +166,7 @@ class otn2d:
         self.L = Nx * Ny * Nc
         self.order = np.arange(self.Nx * self.Ny)  # order of clusters
         self.order_i = np.arange(self.Nx * self.Ny)  # inverse order of clusters
-        self.logger = logging.getLogger('otn2d')
+        self.logger = logging.getLogger('tnac4o')
         self.energy = np.zeros(0)
         self.probability = np.zeros(0)
         self.rotation = 0
@@ -390,7 +405,6 @@ class otn2d:
         Returns:
             The lowest energy found.
         """
-        log2e = np.log2(np.exp(1))
         keep_total_time, keep_time = time.time(), time.time()
         # Prepare environments for layers from bottom
         self.logger.info('Searching ground state with beta = %.2f', self.beta)
@@ -599,7 +613,6 @@ class otn2d:
                                                                       RRl[self.Nx - nx - 1][tind[nx + 2:]])
 
                 minprob = np.min(minprob)  # np.min(newprob)#
-                maxprob = np.max(newprob)  # np.min(newprob)#
 
                 newprob = newprob.cumsum(axis=1)
                 rr = np.random.rand(M)
@@ -848,7 +861,8 @@ class otn2d:
                             dpos = dstate.nonzero()[0]
                             dstate = dstate[dpos]
                             if (lim_hd <= 1) or (self._exc_hd(dstate) >= lim_hd):
-                                dfirst, dlast = dpos[0], self.Nx * ny + nx
+                                dfirst = dpos[0]
+                                dlast = self.Nx * ny + nx
                                 dP = pr - probn[kk]
                                 di = self._exc_add_to_d(dpos, dstate)  # dict index
                                 sel = []  # sub-excitations list
@@ -1053,11 +1067,10 @@ class otn2d:
                     lower = upper - sizes[kk]
                     ind = order[lower:upper]
                     Eng_kk = Eng[ind]
-                    prob_kk = prob[ind]
 
                     bel = self.el[inds[indn[kk]]][:]
                     # add other merged branches as new excitations
-                    for ii, En, pr in zip(ind, Eng_kk, prob_kk):  # merge other excitations
+                    for ii, En in zip(ind, Eng_kk):  # merge other excitations
                         conf_dEng = En - Engn[kk]
                         if (conf_dEng <= max_dEng) and (ii != indn[kk]):
                             # where the states differ
@@ -1245,12 +1258,11 @@ class otn2d:
                     lower = upper - sizes[kk]
                     ind = order[lower:upper]
                     Eng_kk = Eng[ind]
-                    prob_kk = prob[ind]
 
                     bel = self.el[inds[indn[kk]]][:]
                     new_bel = []
                     # add other merged branches as new excitations
-                    for ii, En, pr in zip(ind, Eng_kk, prob_kk):  # merge other excitations
+                    for ii, En in zip(ind, Eng_kk):  # merge other excitations
                         conf_dEng = En - Engn[kk]
                         if (conf_dEng <= max_dEng) and (ii != indn[kk]):
                             # where the states differ

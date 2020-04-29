@@ -1,4 +1,4 @@
-"""Setup script for otn2d."""
+"""Setup script for tnac4o."""
 from setuptools import setup, find_packages
 
 requirements = open('requirements.txt').readlines()
@@ -11,9 +11,9 @@ long_description = open('README.md', encoding='utf-8').read()
 __version__ = '0.0.9'
 
 setup(
-    name='otn2d',
+    name='tnac4o',
     version=__version__,
-    author='Marek M. Rams, Masoud Mohseni, Bartłomiej Gardas',
+    author='Marek M. Rams, Masoud Mohseni, Bartlomiej Gardas',
     author_email='marek.rams@uj.edu.pl',
     license='Apache License 2.0',
     platform=['any'],

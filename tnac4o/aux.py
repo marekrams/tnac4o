@@ -1,3 +1,18 @@
+# Copyright 2020 Marek M. Rams, Masoud Mohseni, Bartlomiej Gardas. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
 r"""
 Auxliary functions to load and operate on couplings.
 """
@@ -52,7 +67,7 @@ def Jij_f2p(J):
     r"""
     Change 1-base indexig to 0-base indexing in a list of Jij couplings.
 
-    Class otn2d expects 0-based indexing.
+    Class tnac4o expects 0-based indexing.
 
     Args:
         J (list): a list of couplings with elements in the format [i, j, Jij].
@@ -98,7 +113,7 @@ def energy_RMF(J, states):
 
     Args:
         J (dict): dictionary encoding the cost function as factored graph on 2d rectangular lattice,
-            see :meth:`otn2d.otn2d` for used conventions.
+            see :meth:`tnac4o.tnac4o` for used conventions.
         states (nparray): configurations
 
     Returns:

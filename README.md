@@ -1,9 +1,9 @@
-otn2d
+Tensor network approximate contractions 4 optimalization (tnac4o)
 ============
 M. M. Rams, M. Mohseni and B. Gardas, "Optimization and discovery of spin–glass droplets with approximate tensor networks contractions",
 https://arxiv.org/abs/1811.06518
 
-**otn2d** is an open-source package to heuristically solve Ising-type optimization problems defined on quasi-2d lattices, including, for instance, the chimera graph.
+**tnac4o** is an open-source package to heuristically solve Ising-type optimization problems defined on quasi-2d lattices, including, for instance, the chimera graph.
 It employs tensor network contractions to calculate marginal probabilities and identify the most probable states according to Gibbs distribution.
 By identifying spin-glass droplets, it allows one to reconstruct the low-energy spectrum of the model.
 It can also be used for Random Markov Fields defined on a 2d lattice.

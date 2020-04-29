@@ -1,7 +1,7 @@
 import logging
 import argparse
 import time
-import otn2d
+import tnac4o
 import os
 
 
@@ -62,15 +62,15 @@ def main():
                       './../instances/Chimera_droplet_instances/chimera2048_spinglass_power/%03d.txt' % args.ins)
 
     # load Jij couplings
-    J = otn2d.load_Jij(filename_in)
+    J = tnac4o.load_Jij(filename_in)
 
     # those instances are defined with spin numering starting with 1
     # change to 0-base indexing
-    J = otn2d.Jij_f2p(J)
+    J = tnac4o.Jij_f2p(J)
 
     # round J to multiplies of 1/75 for those instances
     # as couplings were saved with 6 digit precision
-    J = otn2d.round_Jij(J, 1 / 75)
+    J = tnac4o.round_Jij(J, 1 / 75)
 
     logging.basicConfig(level='INFO')
 
@@ -81,7 +81,7 @@ def main():
 
     # load instance
     try:
-        ins = otn2d.load(file_name)
+        ins = tnac4o.load(file_name)
     except FileNotFoundError:
         raise Exception('First run script e03_search_spectrum_droplet_instances.py with option `-s`')
 
@@ -93,7 +93,7 @@ def main():
 
     ins.show_solution()
 
-    Eng = otn2d.energy_Jij(J, bit_strings)
+    Eng = tnac4o.energy_Jij(J, bit_strings)
     error = max(abs(ins.energy - Eng))
 
     print('Consistency of different ways to calculate energies.')

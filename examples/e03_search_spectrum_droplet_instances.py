@@ -1,7 +1,7 @@
 import logging
 import argparse
 import time
-import otn2d
+import tnac4o
 import os
 
 
@@ -42,18 +42,18 @@ def search_spectrum_droplet(L=128, instance=1,
                       './../instances/Chimera_droplet_instances/chimera2048_spinglass_power/%03d.txt' % instance)
 
     # load Jij couplings
-    J = otn2d.load_Jij(filename_in)
+    J = tnac4o.load_Jij(filename_in)
 
     # those instances are defined with spin numering starting with 1
     # change to 0-base indexing
-    J = otn2d.Jij_f2p(J)
+    J = tnac4o.Jij_f2p(J)
 
     # round J to multiplies of 1/75 for those instances
     # as couplings were saved with 6 digit precision
-    J = otn2d.round_Jij(J, 1/75)
+    J = tnac4o.round_Jij(J, 1 / 75)
 
     #  initialize solver
-    ins = otn2d.otn2d(mode='Ising', Nx=Nx, Ny=Ny, Nc=Nc, J=J, beta=beta)
+    ins = tnac4o.tnac4o(mode='Ising', Nx=Nx, Ny=Ny, Nc=Nc, J=J, beta=beta)
     ins.logger.info('Analysing droplet instance %1d on chimera graph of %1d sites.' % (instance, L))
 
     #  rotates graph

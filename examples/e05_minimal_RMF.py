@@ -1,7 +1,7 @@
 import logging
 import argparse
 import numpy as np
-import otn2d
+import tnac4o
 
 
 def minimal_RMF(rot=0, beta=3,
@@ -40,7 +40,7 @@ def minimal_RMF(rot=0, beta=3,
 
     logging.basicConfig(level='INFO')
 
-    ins = otn2d.otn2d(mode='RMF', Nx=Nx, Ny=Ny, J=J, beta=4)
+    ins = tnac4o.tnac4o(mode='RMF', Nx=Nx, Ny=Ny, J=J, beta=4)
 
     #  rotates graph
     if rot > 0:

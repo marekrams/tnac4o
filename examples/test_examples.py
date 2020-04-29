@@ -2,7 +2,7 @@ from e01_search_gs_droplet_instances import search_gs_droplet
 from e02_sample_droplet_instances import gibbs_sampling
 from e03_search_spectrum_droplet_instances import search_spectrum_droplet
 from e05_minimal_RMF import minimal_RMF
-import otn2d
+import tnac4o
 import os
 
 
@@ -25,16 +25,16 @@ def test_e02():
     assert(M == len(ins0.states))
     ins1 = gibbs_sampling(M=M, precondition=False, rot=1)
     filename_in = os.path.join(os.path.dirname(__file__),
-                './../instances/Chimera_droplet_instances/chimera128_spinglass_power/001.txt')
+                               './../instances/Chimera_droplet_instances/chimera128_spinglass_power/001.txt')
 
     # test consistency of energies
-    J = otn2d.load_Jij(filename_in)
-    J = otn2d.Jij_f2p(J)
-    J = otn2d.round_Jij(J, 1 / 75)
+    J = tnac4o.load_Jij(filename_in)
+    J = tnac4o.Jij_f2p(J)
+    J = tnac4o.round_Jij(J, 1 / 75)
     st0 = ins0.binary_states()
     st1 = ins1.binary_states()
-    E0 = otn2d.energy_Jij(J, st0)
-    E1 = otn2d.energy_Jij(J, st1)
+    E0 = tnac4o.energy_Jij(J, st0)
+    E1 = tnac4o.energy_Jij(J, st1)
 
     err0 = max(abs(ins0.energy - E0))
     err1 = max(abs(ins1.energy - E1))
@@ -72,15 +72,15 @@ def test_e03():
     st3 = ins3.binary_states()
 
     filename_in = os.path.join(os.path.dirname(__file__),
-                './../instances/Chimera_droplet_instances/chimera128_spinglass_power/001.txt')
-    J = otn2d.load_Jij(filename_in)
-    J = otn2d.Jij_f2p(J)
-    J = otn2d.round_Jij(J, 1 / 75)
+                               './../instances/Chimera_droplet_instances/chimera128_spinglass_power/001.txt')
+    J = tnac4o.load_Jij(filename_in)
+    J = tnac4o.Jij_f2p(J)
+    J = tnac4o.round_Jij(J, 1 / 75)
 
-    E0 = otn2d.energy_Jij(J, st0)
-    E1 = otn2d.energy_Jij(J, st1)
-    E2 = otn2d.energy_Jij(J, st2)
-    E3 = otn2d.energy_Jij(J, st3)
+    E0 = tnac4o.energy_Jij(J, st0)
+    E1 = tnac4o.energy_Jij(J, st1)
+    E2 = tnac4o.energy_Jij(J, st2)
+    E3 = tnac4o.energy_Jij(J, st3)
 
     err0 = max(abs(E1 - E0))
     err1 = max(abs(E2 - E0))
@@ -109,10 +109,10 @@ def test_e05():
 
     assert(max(err0, err1, err2) < 1e-4)
 
-    E0 = otn2d.energy_RMF(ins0.J, ins0.states)
-    E1 = otn2d.energy_RMF(ins0.J, ins1.states)
-    E2 = otn2d.energy_RMF(ins0.J, ins2.states)
-    E3 = otn2d.energy_RMF(ins0.J, ins3.states)
+    E0 = tnac4o.energy_RMF(ins0.J, ins0.states)
+    E1 = tnac4o.energy_RMF(ins0.J, ins1.states)
+    E2 = tnac4o.energy_RMF(ins0.J, ins2.states)
+    E3 = tnac4o.energy_RMF(ins0.J, ins3.states)
 
     err0 = max(abs(E1 - E0))
     err1 = max(abs(E2 - E0))

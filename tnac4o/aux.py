@@ -81,7 +81,7 @@ def Jij_f2p(J):
 
 def energy_Jij(J, states):
     r"""
-    Calculates energies from bit_strings for Ising model.
+    Calculate energies from bit_strings for Ising model.
 
     Args:
         J (list): a list of couplings with elements in the format [i, j, Jij]
@@ -109,7 +109,7 @@ def energy_Jij(J, states):
 
 def energy_RMF(J, states):
     r"""
-    Calculates cost function for bit_string for RMF.
+    Calculate cost function for bit_string for RMF.
 
     Args:
         J (dict): dictionary encoding the cost function as factored graph on 2d rectangular lattice,

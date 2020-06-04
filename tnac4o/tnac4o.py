@@ -30,7 +30,7 @@ import time
 
 def load(file_name):
     r"""
-    Loads solution of an instance from a file.
+    Load solution of an instance from a file.
 
     Args:
         file_name (str): a path to file generated with method :meth:`tnac4o.save`.
@@ -85,13 +85,13 @@ class tnac4o:
             with the cost function :math:`E(s) = \sum_{i<j} J_{ij} s_i s_j + \sum_i J_{ii} s_i`.
             The couplings :math:`J_{ij}` form a 2d rectangular :math:`N_x \times N_y` lattice
             of elementary cells with :math:`N_c` spins in each cell.
-            Allowed interactions include any couplings within clusters and
-            couplings between spins in nearest-neighbor clusters.
+            Allowed interactions include any couplings within block and
+            couplings between spins in nearest-neighbor blocks.
 
             Spin index :math:`i = k N_x N_c+l N_c+m`, with :math:`k=0,1,\ldots,N_y-1`,
             :math:`l=0,1,\ldots,N_x-1`, :math:`m=0,1,\ldots,N_c-1` (zero-based indexing is used).
-            PEPS tensor corresponding to a given cluster is generated explicitly; hence :math:`N_c` cannot be too large.
-            The exact value depends on :math:`N_c` itself, as well as the number of interacting spins between clusters.
+            PEPS tensor corresponding to a given block is generated explicitly; hence :math:`N_c` cannot be too large.
+            The exact value depends on :math:`N_c` itself, as well as the number of spins which interact with neighbouring blocks.
 
             Spins which are not active (with all :math:`J_{ij}` equal 0), are automatically recognized.
             They are not taken into account during the search.
@@ -102,8 +102,8 @@ class tnac4o:
 
         ints Nx, Ny, Nc : lattice shape.
         beta (float): sets the inverse temperature used during the search.
-            It is the most relevant parameter: larger beta allow better to zoom in on low energy states,
-            but make tensor network contraction numerically less stable. Optimal beta is instance dependent
+            It is the most relevant parameter: larger beta allows to better zoom in on low energy states,
+            but makes tensor network contraction numerically less stable. Optimal beta might be instance dependent
             and for different classes of instances it should be found experimentaly.
         J (others): couplings.
             For mode ``'Ising'``, it should be a list of :math:`[i, j, J_{ij}]`.
@@ -115,17 +115,17 @@ class tnac4o:
 
     Examples:
         ins = tnac4o.tnac4o(mode='Ising', Nx=16, Ny=16, Nc=8, beta=beta, J=J) initialises a model which
-        includes interactions of a chimera graph C16 with 2048 spins,
-        see e.g., https://docs.dwavesys.com/docs/latest/c_gs_4.html
+        includes interactions of a chimera graph C16 with 2048 spins 
+        (see e.g., https://docs.dwavesys.com/docs/latest/c_gs_4.html)
 
     Returns:
         Obtained results are stored as instance attributes (see below).
 
     Attributes:
         energy: energy(-ies) of states obtained from searching or sampling.
-        probability: log2 of the most probable state obtained during the search.
+        probability: log2 of probability of the most probable state obtained during the search.
         degeneracy: degeneracy of the ground state.
-        states: states of clusters from searching or sampling.
+        states: states of blocks from searching or sampling.
             In the mode ``'Ising'`` use method :meth:`binary_states` to get the bit strings.
         discarded_probability: log2 of the largest probability discarded during the search.
         negative_probability: a potential red flag.
@@ -133,9 +133,8 @@ class tnac4o:
             A negative value means that some conditional probabilities
             calculated from tensor network contraction were negative.
             This indicates that the contraction was not fully numerically stable.
-            The worst case is shown.
             The value shows the ratio of negative and positive conditional
-            probabilities for one cluster and partial configuration.
+            probabilities for one block and partial configuration. The worst case is shown.
         logger: logger
         excitations_encoding: if the low-energy spectrum was searched,
         this is the index of the merging strategy, which was used.
@@ -200,7 +199,7 @@ class tnac4o:
 
     def save(self, file_name):
         r"""
-        Saves solution of the instance to a .npy file.
+        Save solution of the instance to a .npy file.
 
         Args:
             file_name (str): where to save
@@ -235,7 +234,7 @@ class tnac4o:
 
     def show_properties(self):
         r"""
-        Displays basic properties of the lattice.
+        Display basic properties of the lattice.
         """
         print("L:     ", self.L)
         print("Ny:    ", self.Ny)
@@ -292,7 +291,7 @@ class tnac4o:
         r"""
         Rotate 2d graph by 90 degrees.
 
-        It is used to contract peps and search from other directions.
+        It is used to contract peps and perform search starting from different sited of the lattice.
         Rotations are cumulative.
         """
         if self.mode == 'Ising':
@@ -352,8 +351,8 @@ class tnac4o:
 
         Args:
             mode (str): Type of heuristics used. For now, only 'balancing' trick is implemented.
-            steps (int): number of default smaller betas used (if they are not provided explicitly).
-            Default are betas decrising by a factor of two from the target one, with bond dimension 10.
+            steps (int): number of default smaller betas used (if they are not provided explicitly, in which case
+                betas are decreasing by a factor of two from the target one, with bond dimension set to 8).
             beta_cond (list of floats): beta's used to search for preconditioning.
             Dmax_cond (list of ints): corresponding maximal bond dimensions used in boundary MPS.
             max_scale (float): bound on local rescaling used in one step.
@@ -389,11 +388,11 @@ class tnac4o:
 
         Merge matching configurations during branch-and-bound search going line by line (:math:`n_y=0:N_y-1`).
         It keeps track of GS degeneracy, distinguishing different energies with precision min_dEng.
-        Probabilities kept as log2. Results are stored as instance attributes.
+        Probabilities are kept as log2. Results are stored as instance attributes.
 
         Args:
             M (int): maximal number of branches (partial configurations) that are kept during the search.
-            relative_P_cutoff (float): do not keep branches with a probability
+            relative_P_cutoff (float): discard branches with a probability
                 smaller by that factor comparing with most probable one.
             min_dEng (float): precision below which two states (perhaps partial) are considered to have the same energy.
             graduate_truncation (boolen): more gradually truncates boundary MPS. Might be more precise, but slower.
@@ -556,9 +555,9 @@ class tnac4o:
                        Dmax=32, tolS=1e-15,
                        tolV=1e-10, max_sweeps=20):
         r"""
-        Samples from the Boltzman distribution on a quasi-2d graph.
+        Sample from the Boltzman distribution on a quasi-2d graph.
 
-        Probabilities kept as log2. Results are stored as instance attributes.
+        Probabilities are kept as log2. Results are stored as instance attributes.
 
         Args:
             M (int): number of configurations.
@@ -664,7 +663,7 @@ class tnac4o:
         Information about excited states (droplets) is collected during merging,
         which allows reconstructing the low-energy spectrum.
         It keeps track of GS degeneracy, distinguishing different energies with precision min_dEng.
-        Probabilities kept as log2. Results are stored as instance attributes.
+        Probabilities are kept as log2. Results are stored as instance attributes.
 
         Args:
             excitations_encoding (int): Approach used to define independent/elementary droplets
@@ -685,7 +684,7 @@ class tnac4o:
                 of small sizes but retains a one-to-one correspondence between the low-energy spectrum
                 and the stored excitation structure.
             M (int): maximal number of branches (partial configurations) that are kept during the search.
-            relative_P_cutoff (float): do not keep branches with a probability
+            relative_P_cutoff (float): discard branches with a probability
                 smaller by that factor comparing with most probable one.
             max_dEng (float): maximal excitation energy being targeted.
             lim_hd (int): Lower limit of Hamming distance between states (while merging). Outputs fewer states.
@@ -1360,7 +1359,7 @@ class tnac4o:
 
     def decode_low_energy_states(self, max_dEng=0., max_states=1024):
         r"""
-        Decode excitation structure found into actuall low-energy states.
+        Decode found structure of excitations into the actuall low-energy states.
 
         It can be used after method :meth:`search_low_energy_spectrum`.
 
@@ -2043,7 +2042,7 @@ class tnac4o:
 
     def _exc_show_properties(self):
         r"""
-        Displays some info on the tree storing excitation structure.
+        Display some info on the tree storing excitation structure.
         """
         print("Excitation encoding  :", self.excitations_encoding)
         print("Size of dictionary   :", len(self.d))
@@ -2406,13 +2405,13 @@ class tnac4o:
 
     def exc_print(self):
         r"""
-        Displays tree of the excitations structure.
+        Display the excitations' structure tree.
         """
         self._exc_print(el=self.el, layer=1)
 
     def _exc_print(self, el, layer=1):
         r"""
-        Recursively displays tree of the excitations structure.
+        Recursively display tree of the excitations'.
         """
         for exc in el:
             Eng = exc[0][0]

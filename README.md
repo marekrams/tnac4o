@@ -1,7 +1,9 @@
 Tensor network approximate contractions for optimalization (tnac4o)
 ============
-M. M. Rams, M. Mohseni and B. Gardas, "Optimization and spin–glass droplets learning with approximate tensor networks contractions",
+M. M. Rams, M. Mohseni and B. Gardas, "Spin-glass droplets learning and approximate optimization with tensor networks",
 https://arxiv.org/abs/1811.06518
+
+Documentation: https://tnac4o.readthedocs.io/en/latest/
 
 **tnac4o** is an open-source package to heuristically solve Ising-type optimization problems defined on quasi-2d lattices, including, for instance, the chimera graph.
 It employs tensor network contractions to calculate marginal probabilities and identify the most probable states from Gibbs distribution.
@@ -53,12 +55,3 @@ Finally, for a minimal example of a problem defined as a Random Markov Field see
    ```
    python e05_minimal_RMF.py
    ```
-
-Documentation
--------------
-
-Build using sphinx.
-   ```
-   cd doc && make html
-   ```
-The generated documentation can be found at `doc/build/html/index.html`

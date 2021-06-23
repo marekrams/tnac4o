@@ -16,6 +16,7 @@ from e01_search_gs_droplet_instances import search_gs_droplet
 from e02_sample_droplet_instances import gibbs_sampling
 from e03_search_spectrum_droplet_instances import search_spectrum_droplet
 from e05_minimal_RMF import minimal_RMF
+from e06_search_gs_degeneracy_J124 import search_gs_J124
 import tnac4o
 import os
 
@@ -135,8 +136,20 @@ def test_e05():
     assert(max(err0, err1, err2) < 1e-4)
 
 
+def test_e06():
+    """ Minimal test of ground state search. """
+    # expected energy for droplet instance 1 for L=128
+    expected_energy = -2309
+    expected_degeneracy = 1152
+
+    ins = search_gs_J124(rot=0, C=8, instance=1, D=8, precondition=True)
+    assert(abs(expected_energy - ins.energy[0]) < 1e-12)
+    assert expected_degeneracy == ins.degeneracy
+
+
 if __name__ == "__main__":
     test_e01()
     test_e02()
     test_e03()
     test_e05()
+    test_e06()

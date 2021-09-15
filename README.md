@@ -1,6 +1,9 @@
 Tensor network approximate contractions for optimalization (tnac4o)
 ============
-M. M. Rams, M. Mohseni and B. Gardas, "Spin-glass droplets learning and approximate optimization with tensor networks",
+Accompanying article:
+M. M. Rams, M. Mohseni, D. Eppens, K. Jałowiecki and B. Gardas, 
+"Approximate optimization, sampling and spin-glass droplets discovery with tensor networks", Phys. Rev. E 104, 025308 (2021).
+https://doi.org/10.1103/PhysRevE.104.025308
 https://arxiv.org/abs/1811.06518
 
 Documentation: https://tnac4o.readthedocs.io/en/latest/
@@ -51,7 +54,13 @@ Loading the solution from the previous script, and reconstructing the low-energy
    python e04_load_spectrum_droplet_instances.py -L 128 -ins 1
    ```
 
-Finally, for a minimal example of a problem defined as a Random Markov Field see:
+A minimal example of a problem defined as a Random Markov Field see:
    ```
    python e05_minimal_RMF.py
    ```
+
+Script counting ground state degeneracy for a class of discrete instances in the paper (Fig. 4):
+   ```
+   python e06_search_gs_degeneracy_J124.py
+   ```
+

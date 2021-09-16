@@ -2,9 +2,7 @@ Tensor network approximate contractions for optimalization (tnac4o)
 ============
 Accompanying article:
 M. M. Rams, M. Mohseni, D. Eppens, K. Jałowiecki and B. Gardas, 
-"Approximate optimization, sampling and spin-glass droplets discovery with tensor networks", Phys. Rev. E 104, 025308 (2021).
-https://doi.org/10.1103/PhysRevE.104.025308
-https://arxiv.org/abs/1811.06518
+"Approximate optimization, sampling and spin-glass droplets discovery with tensor networks", [Phys. Rev. E 104, 025308 (2021)](https://doi.org/10.1103/PhysRevE.104.025308), https://arxiv.org/abs/1811.06518
 
 Documentation: https://tnac4o.readthedocs.io/en/latest/
 

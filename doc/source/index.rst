@@ -10,8 +10,8 @@ Welcome to tnac4o's documentation!
 It employs tensor network contractions to calculate marginal probabilities and identify the most probable states according to Gibbs distribution.
 By identifying spin-glass droplets, it allows reconstructing the low-energy spectrum of the model. It can also be used for Random Markov Fields defined on 2d lattice.
 
-**tnac4o** is based on the paper M. M. Rams, M. Mohseni and B. Gardas, *"Spin-glass droplets learning and approximate optimization with tensor networks"*,
-https://arxiv.org/abs/1811.06518
+**tnac4o** is based on the paper M. M. Rams, M. Mohseni, D. Eppens, K. Jałowiecki and B. Gardas, 
+*"Approximate optimization, sampling and spin-glass droplets discovery with tensor networks"*, `Phys. Rev. E 104, 025308 (2021) <https://doi.org/10.1103/PhysRevE.104.025308>`_, `arXiv:1811.06518 <https://arxiv.org/abs/1811.06518>`_
 
 .. toctree::
    :maxdepth: 2
